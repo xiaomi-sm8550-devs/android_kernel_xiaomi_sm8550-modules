@@ -5079,6 +5079,8 @@ static int icnss_probe(struct platform_device *pdev)
 	ret = icnss_smmu_dt_parse(priv);
 	if (ret)
 		goto unreg_bus_scale;
+		
+	device_enable_async_suspend(dev);
 
 	spin_lock_init(&priv->event_lock);
 	spin_lock_init(&priv->on_off_lock);
