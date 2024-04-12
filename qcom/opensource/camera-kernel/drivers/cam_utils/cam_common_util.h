@@ -372,4 +372,20 @@ int cam_common_mem_kdup(void **dst, void *src, size_t size);
  * @memory:                Address of memory
  */
 void cam_common_mem_free(void *memory);
+ * cam_retry_kzalloc()
+ *
+ * @brief                  retry kzalloc
+ *
+ * @func:                  the name of the function that called this function.
+ * @line:                  line of code.
+ * @s:                     how many bytes of memory are required.
+ * @flags:                 the type of memory to allocate (see kmalloc).
+ *
+ */
+void *cam_retry_kzalloc(
+	const char *func,
+	int line,
+	size_t s,
+	gfp_t gfp);
+
 #endif /* _CAM_COMMON_UTIL_H_ */
