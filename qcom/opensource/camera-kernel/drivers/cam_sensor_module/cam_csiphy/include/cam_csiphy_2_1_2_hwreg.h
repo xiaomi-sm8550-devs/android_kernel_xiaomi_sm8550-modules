@@ -164,6 +164,112 @@ struct csiphy_reg_t csiphy_2ph_v2_1_2_reg[] = {
 	{0x0C64, 0x7F, 0x00, CSIPHY_SKEW_CAL},
 };
 
+struct csiphy_reg_t csiphy_2ph_v2_1_2_reg_m1[] = {
+	{0x0E94, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0EA0, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E90, 0x0f, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E98, 0x08, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E94, 0xD0, 0x01, CSIPHY_DEFAULT_PARAMS},
+	{0x0094, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x00A0, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0090, 0x0f, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0098, 0x08, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0094, 0xD0, 0x01, CSIPHY_DEFAULT_PARAMS},
+	{0x0494, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x04A0, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0490, 0x0f, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0498, 0x08, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0494, 0xD0, 0x01, CSIPHY_DEFAULT_PARAMS},
+	{0x0894, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x08A0, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0890, 0x0f, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0898, 0x08, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0894, 0xD0, 0x01, CSIPHY_DEFAULT_PARAMS},
+	{0x0C94, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0CA0, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C90, 0x0f, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C98, 0x08, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C94, 0xD0, 0x01, CSIPHY_DEFAULT_PARAMS},
+	{0x0E30, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E28, 0x04, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E00, 0x80, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E0C, 0xFF, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E38, 0x1F, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E2C, 0x01, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E34, 0x0F, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E1C, 0x0A, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E14, 0x20, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E3C, 0xB8, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E04, 0x0D, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E20, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0E08, 0x10, 0x00, CSIPHY_SETTLE_CNT_LOWER_BYTE},
+	{0x0E10, 0x72, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0030, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0000, 0x92, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0038, 0xFE, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x002C, 0x01, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0034, 0x0F, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x001C, 0x0A, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0014, 0x20, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x003C, 0xB8, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0004, 0x0D, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0020, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0008, 0x10, 0x00, CSIPHY_SETTLE_CNT_LOWER_BYTE},
+	{0x0010, 0x72, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0430, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0400, 0x92, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0438, 0xFE, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x042C, 0x01, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0434, 0x0F, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x041C, 0x0A, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0414, 0x20, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x043C, 0xB8, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0404, 0x0D, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0420, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0408, 0x10, 0x00, CSIPHY_SETTLE_CNT_LOWER_BYTE},
+	{0x0410, 0x72, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0830, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0800, 0x92, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0838, 0xFE, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x082C, 0x01, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0834, 0x0F, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x081C, 0x0A, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0814, 0x20, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x083C, 0xB8, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0804, 0x0D, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0820, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0808, 0x10, 0x00, CSIPHY_SETTLE_CNT_LOWER_BYTE},
+	{0x0810, 0x72, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C30, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C00, 0x92, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C38, 0xFE, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C2C, 0x01, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C34, 0x0F, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C1C, 0x0A, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C14, 0x20, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C3C, 0xB8, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C04, 0x0D, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C20, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0C08, 0x10, 0x00, CSIPHY_SETTLE_CNT_LOWER_BYTE},
+	{0x0C10, 0x72, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0094, 0xD7, 0x00, CSIPHY_SKEW_CAL},
+	{0x005C, 0x04, 0x00, CSIPHY_SKEW_CAL},
+	{0x0060, 0xBC, 0x00, CSIPHY_SKEW_CAL},
+	{0x0064, 0x7F, 0x00, CSIPHY_SKEW_CAL},
+	{0x0494, 0xD7, 0x00, CSIPHY_SKEW_CAL},
+	{0x045C, 0x04, 0x00, CSIPHY_SKEW_CAL},
+	{0x0460, 0xBC, 0x00, CSIPHY_SKEW_CAL},
+	{0x0464, 0x7F, 0x00, CSIPHY_SKEW_CAL},
+	{0x0894, 0xD7, 0x00, CSIPHY_SKEW_CAL},
+	{0x085C, 0x04, 0x00, CSIPHY_SKEW_CAL},
+	{0x0860, 0xBC, 0x00, CSIPHY_SKEW_CAL},
+	{0x0864, 0x7F, 0x00, CSIPHY_SKEW_CAL},
+	{0x0C94, 0xD7, 0x00, CSIPHY_SKEW_CAL},
+	{0x0C5C, 0x04, 0x00, CSIPHY_SKEW_CAL},
+	{0x0C60, 0xBC, 0x00, CSIPHY_SKEW_CAL},
+	{0x0C64, 0x7F, 0x00, CSIPHY_SKEW_CAL},
+};
+
 struct csiphy_reg_t csiphy_2ph_v2_1_2_reg_m11[] = {
 	{0x0E94, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
 	{0x0EA0, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
@@ -1185,6 +1291,47 @@ struct csiphy_reg_t datarate_212_2p5Gsps[] = {
 	{0x0A14, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
 };
 
+struct csiphy_reg_t datarate_212_2p5Gsps_m1[] = {
+	/* AFE Settings */
+	{0x0268, 0xF1, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0294, 0x01, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0288, 0x20, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0278, 0x20, 0x00, CSIPHY_CDR_LN_SETTINGS},
+	{0x026C, 0x07, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x028C, 0xF8, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0270, 0x03, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0274, 0x03, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0668, 0xF1, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0694, 0x01, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0688, 0x20, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0678, 0x20, 0x00, CSIPHY_CDR_LN_SETTINGS},
+	{0x066C, 0x07, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x068C, 0xF8, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0670, 0x03, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0674, 0x03, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A68, 0xF1, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A94, 0x01, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A88, 0x20, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A78, 0x20, 0x00, CSIPHY_CDR_LN_SETTINGS},
+	{0x0A6C, 0x07, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A8C, 0xF8, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A70, 0x03, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A74, 0x03, 0x0A, CSIPHY_DEFAULT_PARAMS},
+	/* Datarate Sensitive*/
+	{0x020C, 0x22, 0x00, CSIPHY_SETTLE_CNT_LOWER_BYTE},
+	{0x0208, 0x00, 0x00, CSIPHY_SETTLE_CNT_HIGHER_BYTE},
+	{0x0210, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0214, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x060C, 0x22, 0x00, CSIPHY_SETTLE_CNT_LOWER_BYTE},
+	{0x0608, 0x00, 0x00, CSIPHY_SETTLE_CNT_HIGHER_BYTE},
+	{0x0610, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0614, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A0C, 0x22, 0x00, CSIPHY_SETTLE_CNT_LOWER_BYTE},
+	{0x0A08, 0x00, 0x00, CSIPHY_SETTLE_CNT_HIGHER_BYTE},
+	{0x0A10, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A14, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+};
+
 struct csiphy_reg_t datarate_212_2p6Gsps[] = {
 	/* AFE Settings */
 	{0x0268, 0xF1, 0x00, CSIPHY_DEFAULT_PARAMS},
@@ -1470,6 +1617,47 @@ struct csiphy_reg_t datarate_212_4p0Gsps[] = {
 	{0x0A8C, 0x30, 0x00, CSIPHY_DEFAULT_PARAMS},
 	{0x0A70, 0x01, 0x00, CSIPHY_DEFAULT_PARAMS},
 	{0x0A74, 0x00, 0x0A, CSIPHY_DEFAULT_PARAMS},
+	/* Datarate Sensitive*/
+	{0x020C, 0x1C, 0x00, CSIPHY_SETTLE_CNT_LOWER_BYTE},
+	{0x0208, 0x00, 0x00, CSIPHY_SETTLE_CNT_HIGHER_BYTE},
+	{0x0210, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0214, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x060C, 0x1C, 0x00, CSIPHY_SETTLE_CNT_LOWER_BYTE},
+	{0x0608, 0x00, 0x00, CSIPHY_SETTLE_CNT_HIGHER_BYTE},
+	{0x0610, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0614, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A0C, 0x1C, 0x00, CSIPHY_SETTLE_CNT_LOWER_BYTE},
+	{0x0A08, 0x00, 0x00, CSIPHY_SETTLE_CNT_HIGHER_BYTE},
+	{0x0A10, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A14, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+};
+
+struct csiphy_reg_t datarate_212_4p0Gsps_m1[] = {
+	/* AFE Settings */
+	{0x0268, 0xF1, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0294, 0x01, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0288, 0x20, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0278, 0x0C, 0x00, CSIPHY_CDR_LN_SETTINGS},
+	{0x026C, 0x1D, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x028C, 0x30, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0270, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0274, 0x03, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0668, 0xF1, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0694, 0x01, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0688, 0x20, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0678, 0x0C, 0x00, CSIPHY_CDR_LN_SETTINGS},
+	{0x066C, 0x1D, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x068C, 0x30, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0670, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0674, 0x03, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A68, 0xF1, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A94, 0x01, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A88, 0x20, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A78, 0x0C, 0x00, CSIPHY_CDR_LN_SETTINGS},
+	{0x0A6C, 0x1D, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A8C, 0x30, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A70, 0x00, 0x00, CSIPHY_DEFAULT_PARAMS},
+	{0x0A74, 0x03, 0x0A, CSIPHY_DEFAULT_PARAMS},
 	/* Datarate Sensitive*/
 	{0x020C, 0x1C, 0x00, CSIPHY_SETTLE_CNT_LOWER_BYTE},
 	{0x0208, 0x00, 0x00, CSIPHY_SETTLE_CNT_HIGHER_BYTE},
@@ -1820,6 +2008,177 @@ static struct data_rate_reg_info_t data_rate_settings_2_1_2[] = {
 	},
 };
 
+static struct data_rate_reg_info_t data_rate_settings_2_1_2_m1[] = {
+	{
+		/* ((100 MSpS) * (10^6) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 228000000,
+		.data_rate_reg_array[0] = datarate_212_100Msps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_100Msps),
+	},
+	{
+		/* ((200 MSpS) * (10^6) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 456000000,
+		.data_rate_reg_array[0] = datarate_212_200Msps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_200Msps),
+	},
+	{
+		/* ((300 MSpS) * (10^6) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 684000000,
+		.data_rate_reg_array[0] = datarate_212_300Msps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_300Msps),
+	},
+	{
+		/* ((350 MSpS) * (10^6) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 798000000,
+		.data_rate_reg_array[0] = datarate_212_350Msps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_350Msps),
+	},
+	{
+		/* ((400 MSpS) * (10^6) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 912000000,
+		.data_rate_reg_array[0] = datarate_212_400Msps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_400Msps),
+	},
+	{
+		/* ((500 MSpS) * (10^6) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 1140000000,
+		.data_rate_reg_array[0] = datarate_212_500Msps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_500Msps),
+	},
+	{
+		/* ((600 MSpS) * (10^6) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 1368000000,
+		.data_rate_reg_array[0] = datarate_212_600Msps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_600Msps),
+	},
+	{
+		/* ((700 MSpS) * (10^6) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 1596000000,
+		.data_rate_reg_array[0] = datarate_212_700Msps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_700Msps),
+	},
+	{
+		/* ((800 MSpS) * (10^6) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 1824000000,
+		.data_rate_reg_array[0] = datarate_212_800Msps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_800Msps),
+	},
+	{
+		/* ((900 MSpS) * (10^6) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 2052000000,
+		.data_rate_reg_array[0] = datarate_212_900Msps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_900Msps),
+	},
+	{
+		/* ((1000 MSpS) * (10^6) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 2280000000,
+		.data_rate_reg_array[0] = datarate_212_1p0Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_1p0Gsps),
+	},
+	{
+		/* ((1.2 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 2736000000,
+		.data_rate_reg_array[0] = datarate_212_1p2Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_1p2Gsps),
+	},
+	{
+		/* ((1.5 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 3420000000,
+		.data_rate_reg_array[0] = datarate_212_1p5Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_1p5Gsps),
+	},
+	{
+		/* ((1.7 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 3876000000,
+		.data_rate_reg_array[0] = datarate_212_1p7Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_1p7Gsps),
+	},
+	{
+		/* ((2.0 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 4560000000,
+		.data_rate_reg_array[0] = datarate_212_2p0Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_2p0Gsps),
+	},
+	{
+		/* ((2.1 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 4788000000,
+		.data_rate_reg_array[0] = datarate_212_2p1Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_2p1Gsps),
+	},
+	{
+		/* ((2.35 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 5358000000,
+		.data_rate_reg_array[0] = datarate_212_2p35Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_2p35Gsps),
+	},
+	{
+		/* ((2.5 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 5700000000,
+		.data_rate_reg_array[0] = datarate_212_2p5Gsps_m1,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_2p5Gsps_m1),
+	},
+	{
+		/* ((2.6 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value*/
+		.bandwidth = 5928000000,
+		.data_rate_reg_array[0] = datarate_212_2p6Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_2p6Gsps),
+	},
+	{
+		/* ((2.8 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value */
+		.bandwidth = 6384000000,
+		.data_rate_reg_array[0] = datarate_212_2p8Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_2p8Gsps),
+	},
+	{
+		/* ((3.0 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value */
+		.bandwidth = 6840000000,
+		.data_rate_reg_array[0] = datarate_212_3p0Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_3p0Gsps),
+	},
+	{
+		/* ((3.3 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value */
+		.bandwidth = 7524000000,
+		.data_rate_reg_array[0] = datarate_212_3p3Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_3p3Gsps),
+	},
+	{
+		/* ((3.5 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value */
+		.bandwidth = 7980000000,
+		.data_rate_reg_array[0] = datarate_212_3p5Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_3p5Gsps),
+	},
+	{
+		/* ((4 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value */
+		.bandwidth = 9120000000,
+		.data_rate_reg_array[0] = datarate_212_4p0Gsps_m1,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_4p0Gsps_m1),
+	},
+	{
+		/* ((4.5 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value */
+		.bandwidth = 10260000000,
+		.data_rate_reg_array[0] = datarate_212_4p5Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_4p5Gsps),
+	},
+	{
+		/* ((5.0 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value */
+		.bandwidth = 11400000000,
+		.data_rate_reg_array[0] = datarate_212_5p0Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_5p0Gsps),
+	},
+	{
+		/* ((5.5 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value */
+		.bandwidth = 12540000000,
+		.data_rate_reg_array[0] = datarate_212_5p5Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_5p5Gsps),
+	},
+	{
+		/* ((6.0 GSpS) * (10^9) * (2.28 bits/symbol)) rounded value */
+		.bandwidth = 13680000000,
+		.data_rate_reg_array[0] = datarate_212_6p0Gsps,
+		.data_rate_reg_array_size = ARRAY_SIZE(datarate_212_6p0Gsps),
+	},
+};
+
 static struct data_rate_reg_info_t data_rate_settings_2_1_2_m11[] = {
 	{
 		/* ((100 MSpS) * (10^6) * (2.28 bits/symbol)) rounded value*/
@@ -2075,6 +2434,11 @@ struct data_rate_settings_t data_rate_delta_table_2_1_2 = {
 	.data_rate_settings = data_rate_settings_2_1_2,
 };
 
+struct data_rate_settings_t data_rate_delta_table_2_1_2_m1 = {
+	.num_data_rate_settings = ARRAY_SIZE(data_rate_settings_2_1_2_m1),
+	.data_rate_settings = data_rate_settings_2_1_2_m1,
+};
+
 struct data_rate_settings_t data_rate_delta_table_2_1_2_m11 = {
 	.num_data_rate_settings = ARRAY_SIZE(data_rate_settings_2_1_2_m11),
 	.data_rate_settings = data_rate_settings_2_1_2_m11,
@@ -2112,6 +2476,23 @@ struct csiphy_ctrl_t ctrl_reg_2_1_2 = {
 	.csiphy_reset_exit_regs = csiphy_reset_exit_reg_2_1_2,
 	.csiphy_lane_config_reg = csiphy_lane_en_reg_2_1_2,
 	.data_rates_settings_table = &data_rate_delta_table_2_1_2,
+	.csiphy_bist_reg = &bist_setting_2_1_2,
+	.getclockvoting = get_clk_voting_dynamic,
+};
+
+struct csiphy_ctrl_t ctrl_reg_2_1_2_m1 = {
+	.csiphy_common_reg = csiphy_common_reg_2_1_2,
+	.csiphy_2ph_reg = csiphy_2ph_v2_1_2_reg_m1,
+	.csiphy_3ph_reg = csiphy_3ph_v2_1_2_reg,
+	.csiphy_2ph_combo_mode_reg = csiphy_2ph_v2_1_2_combo_mode_reg,
+	.csiphy_3ph_combo_reg = NULL,
+	.csiphy_2ph_3ph_mode_reg = NULL,
+	.csiphy_reg = &csiphy_v2_1_2,
+	.csiphy_irq_reg = csiphy_irq_reg_2_1_2,
+	.csiphy_reset_enter_regs = csiphy_reset_enter_reg_2_1_2,
+	.csiphy_reset_exit_regs = csiphy_reset_exit_reg_2_1_2,
+	.csiphy_lane_config_reg = csiphy_lane_en_reg_2_1_2,
+	.data_rates_settings_table = &data_rate_delta_table_2_1_2_m1,
 	.csiphy_bist_reg = &bist_setting_2_1_2,
 	.getclockvoting = get_clk_voting_dynamic,
 };
