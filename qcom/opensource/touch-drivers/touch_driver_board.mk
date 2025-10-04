@@ -26,6 +26,7 @@ ifeq ($(TOUCH_DLKM_ENABLE),  true)
                                         $(KERNEL_MODULES_OUT)/goodix_ts.ko \
                                         $(KERNEL_MODULES_OUT)/atmel_mxt_ts.ko \
                                         $(KERNEL_MODULES_OUT)/qts.ko \
+                                        $(KERNEL_MODULES_OUT)/fts_touch_spi.ko \
                                         $(KERNEL_MODULES_OUT)/xiaomi_touch.ko
                         else ifeq ($(TARGET_BOARD_PLATFORM), blair)
                                 BOARD_VENDOR_KERNEL_MODULES += $(KERNEL_MODULES_OUT)/focaltech_fts.ko \
