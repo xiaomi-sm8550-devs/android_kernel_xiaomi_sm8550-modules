@@ -66,6 +66,7 @@ void cam_actuator_shutdown(struct cam_actuator_ctrl_t *a_ctrl);
 
 struct completion *cam_actuator_get_i3c_completion(uint32_t index);
 
+/* xiaomi add begin */
 /**
  * @a_ctrl: Actuator ctrl structure
  *
@@ -97,5 +98,6 @@ int32_t parklens_thread_trigger(struct cam_actuator_ctrl_t *a_ctrl);
  */
 int32_t parklens_thread_stop(struct cam_actuator_ctrl_t *a_ctrl,
 	enum parklens_opcodes opcode);
+/* xiaomi add end */
 
 #endif /* _CAM_ACTUATOR_CORE_H_ */

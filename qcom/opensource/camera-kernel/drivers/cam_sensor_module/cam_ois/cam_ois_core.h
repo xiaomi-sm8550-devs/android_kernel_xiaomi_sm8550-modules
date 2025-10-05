@@ -8,7 +8,7 @@
 
 #include <linux/cma.h>
 #include "cam_ois_dev.h"
-#include "cam_req_mgr_dev.h"
+#include "cam_req_mgr_dev.h" // xiaomi add
 
 #define OIS_NAME_LEN                            32
 
@@ -16,7 +16,6 @@
 #define FIRMWARE_UPDATE_EVERY_TIMES             2
 
 #define FIRMWARE_UPDATE_RETRY_TIMES             1
-
 /**
  * @power_info: power setting info to control the power
  *
@@ -38,6 +37,8 @@ int cam_ois_driver_cmd(struct cam_ois_ctrl_t *e_ctrl, void *arg);
 void cam_ois_shutdown(struct cam_ois_ctrl_t *o_ctrl);
 
 struct completion *cam_ois_get_i3c_completion(uint32_t index);
+
+// xiaomi add
 
 /**
  * @info: Sub device info to req mgr
@@ -86,6 +87,9 @@ int cam_ois_update_req_mgr(
 bool cam_ois_do_frame_skip(
 	int64_t req_id,
 	int32_t dev_hdl);
+
+
+// xiaomi add
 
 #endif
 /* _CAM_OIS_CORE_H_ */

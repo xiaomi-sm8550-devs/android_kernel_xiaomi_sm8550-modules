@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2017-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/types.h>
@@ -22,37 +22,6 @@ struct cam_patch_unique_src_buf_tbl {
 	uint32_t      flags;
 };
 
-int cam_packet_util_get_packet_addr(struct cam_packet **packet,
-	uint64_t packet_handle, uint32_t offset)
-{
-	uintptr_t          packet_addr;
-	size_t             len;
-	int                rc = 0;
-
-	if (!packet) {
-		CAM_ERR(CAM_UTIL, "Invalid parameter packet is NULL");
-		return -EINVAL;
-	}
-
-	rc = cam_mem_get_cpu_buf(packet_handle, &packet_addr,
-		&len);
-	if (rc) {
-		CAM_ERR(CAM_UTIL, "Failed to get packet address from handle: 0x%llx rc: %d",
-			packet_handle, rc);
-		*packet = NULL;
-		return rc;
-	}
-
-	*packet = (struct cam_packet *)((uint8_t *)packet_addr + offset);
-
-	return rc;
-}
-
-void cam_packet_util_put_packet_addr(uint64_t packet_handle)
-{
-	cam_mem_put_cpu_buf(packet_handle);
-}
-
 int cam_packet_util_get_cmd_mem_addr(int handle, uint32_t **buf_addr,
 	size_t *len)
 {
@@ -66,7 +35,6 @@ int cam_packet_util_get_cmd_mem_addr(int handle, uint32_t **buf_addr,
 		if (kmd_buf_addr && *len) {
 			*buf_addr = (uint32_t *)kmd_buf_addr;
 		} else {
-			cam_mem_put_cpu_buf(handle);
 			CAM_ERR(CAM_UTIL, "Invalid addr and length :%zd", *len);
 			rc = -ENOMEM;
 		}
@@ -76,12 +44,6 @@ int cam_packet_util_get_cmd_mem_addr(int handle, uint32_t **buf_addr,
 
 int cam_packet_util_validate_cmd_desc(struct cam_cmd_buf_desc *cmd_desc)
 {
-
-	if (!cmd_desc) {
-		CAM_ERR(CAM_UTIL, "Invalid cmd desc");
-		return -EINVAL;
-	}
-
 	if ((cmd_desc->length > cmd_desc->size) ||
 		(cmd_desc->mem_handle <= 0)) {
 		CAM_ERR(CAM_UTIL, "invalid cmd arg %d %d %d %d",
@@ -99,19 +61,18 @@ int cam_packet_util_validate_packet(struct cam_packet *packet,
 	size_t sum_cmd_desc = 0;
 	size_t sum_io_cfgs = 0;
 	size_t sum_patch_desc = 0;
-	size_t pkt_wo_payload = offsetof(struct cam_packet, payload);
+	size_t pkt_wo_payload = 0;
 
 	if (!packet)
 		return -EINVAL;
 
-	if (!(packet->header.size) ||
-		(size_t)packet->header.size > remain_len ||
-		(size_t)packet->header.size <= pkt_wo_payload) {
+	if ((size_t)packet->header.size > remain_len) {
 		CAM_ERR(CAM_UTIL,
 			"Invalid packet size: %zu, CPU buf length: %zu",
 			(size_t)packet->header.size, remain_len);
 		return -EINVAL;
 	}
+
 
 	CAM_DBG(CAM_UTIL, "num cmd buf:%d num of io config:%d kmd buf index:%d",
 		packet->num_cmd_buf, packet->num_io_configs,
@@ -120,13 +81,15 @@ int cam_packet_util_validate_packet(struct cam_packet *packet,
 	sum_cmd_desc = packet->num_cmd_buf * sizeof(struct cam_cmd_buf_desc);
 	sum_io_cfgs = packet->num_io_configs * sizeof(struct cam_buf_io_cfg);
 	sum_patch_desc = packet->num_patches * sizeof(struct cam_patch_desc);
+	pkt_wo_payload = offsetof(struct cam_packet, payload);
 
-	if (((pkt_wo_payload + (size_t)packet->cmd_buf_offset +
+	if ((!packet->header.size) ||
+		((pkt_wo_payload + (size_t)packet->cmd_buf_offset +
 		sum_cmd_desc) > (size_t)packet->header.size) ||
 		((pkt_wo_payload + (size_t)packet->io_configs_offset +
-			sum_io_cfgs) > (size_t)packet->header.size) ||
+		sum_io_cfgs) > (size_t)packet->header.size) ||
 		((pkt_wo_payload + (size_t)packet->patch_offset +
-			sum_patch_desc) > (size_t)packet->header.size)) {
+		sum_patch_desc) > (size_t)packet->header.size)) {
 		CAM_ERR(CAM_UTIL, "params not within mem len:%zu %zu %zu %zu",
 			(size_t)packet->header.size, sum_cmd_desc,
 			sum_io_cfgs, sum_patch_desc);
@@ -134,42 +97,6 @@ int cam_packet_util_validate_packet(struct cam_packet *packet,
 	}
 
 	return 0;
-}
-
-int cam_packet_util_copy_pkt_to_kmd(struct cam_packet *packet_u, struct cam_packet **packet,
-		size_t remain_len)
-{
-	int rc = 0;
-	uint32_t packet_size;
-
-	packet_size = packet_u->header.size;
-	if (packet_size >= sizeof(struct cam_packet) && packet_size <= remain_len) {
-		rc = cam_common_mem_kdup((void **) packet,
-			packet_u, packet_size);
-		if (rc) {
-			CAM_ERR(CAM_UTIL, "Alloc and copy request %lld packet fail",
-				packet_u->header.request_id);
-			return -EINVAL;
-		}
-		(*packet)->header.size = packet_size;
-	} else {
-		CAM_ERR(CAM_UTIL, "Invalid packet header size %u",
-			packet_size);
-		return -EINVAL;
-	}
-
-	if (cam_packet_util_validate_packet(*packet, remain_len)) {
-		CAM_ERR(CAM_UTIL, "Invalid packet params");
-		rc = -EINVAL;
-		goto free_packet;
-	}
-	return rc;
-
-free_packet:
-	cam_common_mem_free(*packet);
-	*packet = NULL;
-
-	return rc;
 }
 
 int cam_packet_util_get_kmd_buffer(struct cam_packet *packet,
@@ -183,11 +110,6 @@ int cam_packet_util_get_kmd_buffer(struct cam_packet *packet,
 
 	if (!packet || !kmd_buf) {
 		CAM_ERR(CAM_UTIL, "Invalid arg %pK %pK", packet, kmd_buf);
-		return -EINVAL;
-	}
-
-	if (!packet->num_cmd_buf) {
-		CAM_ERR(CAM_UTIL, "Invalid num_cmd_buf = %d", packet->num_cmd_buf);
 		return -EINVAL;
 	}
 
@@ -217,16 +139,14 @@ int cam_packet_util_get_kmd_buffer(struct cam_packet *packet,
 		((size_t)cmd_desc->size > (len - (size_t)cmd_desc->offset))) {
 		CAM_ERR(CAM_UTIL, "invalid memory len:%zd and cmd desc size:%d",
 			len, cmd_desc->size);
-		rc = -EINVAL;
-		goto rel_kmd_buf;
+		return -EINVAL;
 	}
 
 	remain_len -= (size_t)cmd_desc->offset;
 	if ((size_t)packet->kmd_cmd_buf_offset >= remain_len) {
 		CAM_ERR(CAM_UTIL, "Invalid kmd cmd buf offset: %zu",
 			(size_t)packet->kmd_cmd_buf_offset);
-		rc = -EINVAL;
-		goto rel_kmd_buf;
+		return -EINVAL;
 	}
 
 	cpu_addr += (cmd_desc->offset / 4) + (packet->kmd_cmd_buf_offset / 4);
@@ -242,10 +162,7 @@ int cam_packet_util_get_kmd_buffer(struct cam_packet *packet,
 	kmd_buf->offset     = cmd_desc->offset + packet->kmd_cmd_buf_offset;
 	kmd_buf->size       = cmd_desc->size - cmd_desc->length;
 	kmd_buf->used_bytes = 0;
-	return rc;
 
-rel_kmd_buf:
-	cam_mem_put_cpu_buf(cmd_desc->mem_handle);
 	return rc;
 }
 
@@ -332,8 +249,6 @@ void cam_packet_util_dump_patch_info(struct cam_packet *packet,
 
 		if (!(*dst_cpu_addr))
 			CAM_ERR(CAM_ICP, "Null at dst addr %p", dst_cpu_addr);
-
-		cam_mem_put_cpu_buf(patch_desc[i].dst_buf_hdl);
 	}
 }
 
@@ -462,7 +377,6 @@ int cam_packet_util_process_patches(struct cam_packet *packet,
 			(size_t)patch_desc[i].dst_offset)) {
 			CAM_ERR(CAM_UTIL,
 				"Invalid dst buf patch offset");
-			cam_mem_put_cpu_buf((int32_t)patch_desc[i].dst_buf_hdl);
 			return -EINVAL;
 		}
 
@@ -492,7 +406,6 @@ int cam_packet_util_process_patches(struct cam_packet *packet,
 			CAM_BOOL_TO_YESNO(flags & CAM_MEM_FLAG_HW_SHARED_ACCESS),
 			CAM_BOOL_TO_YESNO(flags & CAM_MEM_FLAG_CMD_BUF_TYPE),
 			CAM_BOOL_TO_YESNO(flags & CAM_MEM_FLAG_HW_AND_CDM_OR_SHARED));
-		cam_mem_put_cpu_buf((int32_t)patch_desc[i].dst_buf_hdl);
 	}
 
 	return rc;
@@ -624,16 +537,14 @@ int cam_packet_util_process_generic_cmd_buffer(
 		((size_t)cmd_buf->offset > (buf_size - sizeof(uint32_t)))) {
 		CAM_ERR(CAM_UTIL, "Invalid offset for cmd buf: %zu",
 			(size_t)cmd_buf->offset);
-		rc = -EINVAL;
-		goto end;
+		return -EINVAL;
 	}
 	remain_len -= (size_t)cmd_buf->offset;
 
 	if (remain_len < (size_t)cmd_buf->length) {
 		CAM_ERR(CAM_UTIL, "Invalid length for cmd buf: %zu",
 			(size_t)cmd_buf->length);
-		rc = -EINVAL;
-		goto end;
+		return -EINVAL;
 	}
 
 	blob_ptr = (uint32_t *)(((uint8_t *)cpu_addr) +
@@ -683,7 +594,6 @@ int cam_packet_util_process_generic_cmd_buffer(
 	}
 
 end:
-	cam_mem_put_cpu_buf(cmd_buf->mem_handle);
 	return rc;
 }
 
@@ -823,10 +733,6 @@ send_cmd_buffers:
 	cmd_desc = (struct cam_cmd_buf_desc *) ((uint8_t *)&packet->payload +
 		packet->cmd_buf_offset);
 	for (i = 0; i < packet->num_cmd_buf; i++) {
-		rc = cam_packet_util_validate_cmd_desc(&cmd_desc[i]);
-		if (rc)
-			return rc;
-
 		CAM_DBG(CAM_PRESIL, "Adding CMD buffer:%d", cmd_desc[i].mem_handle);
 		cam_presil_add_unique_buf_hdl_to_list(cmd_desc[i].mem_handle,
 				unique_cmd_buffers, &num_cmd_handles, CAM_PRESIL_UNIQUE_HDL_MAX);
