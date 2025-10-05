@@ -254,6 +254,17 @@ static int cam_actuator_i2c_component_bind(struct device *dev,
 	a_ctrl->last_flush_req = 0;
 	a_ctrl->cam_act_state = CAM_ACTUATOR_INIT;
 
+	INIT_LIST_HEAD(&(a_ctrl->i2c_data.parklens_settings.list_head));
+	parklens_atomic_set(&(a_ctrl->parklens_ctrl.parklens_opcode),
+		ENTER_PARKLENS_WITH_POWERDOWN);
+	parklens_atomic_set(&(a_ctrl->parklens_ctrl.exit_result),
+		PARKLENS_ENTER);
+	parklens_atomic_set(&(a_ctrl->parklens_ctrl.parklens_state),
+		PARKLENS_INVALID);
+	a_ctrl->parklens_ctrl.parklens_thread = NULL;
+
+	INIT_LIST_HEAD(&(a_ctrl->i2c_data.write_settings.list_head));
+
 	return rc;
 
 unreg_subdev:
@@ -424,6 +435,18 @@ static int cam_actuator_platform_component_bind(struct device *dev,
 
 	platform_set_drvdata(pdev, a_ctrl);
 	a_ctrl->cam_act_state = CAM_ACTUATOR_INIT;
+
+	INIT_LIST_HEAD(&(a_ctrl->i2c_data.parklens_settings.list_head));
+	parklens_atomic_set(&(a_ctrl->parklens_ctrl.parklens_opcode),
+		ENTER_PARKLENS_WITH_POWERDOWN);
+	parklens_atomic_set(&(a_ctrl->parklens_ctrl.exit_result),
+		PARKLENS_ENTER);
+	parklens_atomic_set(&(a_ctrl->parklens_ctrl.parklens_state),
+		PARKLENS_INVALID);
+	a_ctrl->parklens_ctrl.parklens_thread = NULL;
+
+	INIT_LIST_HEAD(&(a_ctrl->i2c_data.write_settings.list_head));
+
 	CAM_DBG(CAM_ACTUATOR, "Component bound successfully %d",
 		a_ctrl->soc_info.index);
 

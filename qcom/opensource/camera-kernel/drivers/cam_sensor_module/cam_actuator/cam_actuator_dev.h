@@ -27,6 +27,7 @@
 #include "cam_soc_util.h"
 #include "cam_debug_util.h"
 #include "cam_context.h"
+#include "cam_parklens_thread.h"
 
 #define NUM_MASTERS 2
 #define NUM_QUEUES 2
@@ -49,6 +50,7 @@ enum cam_actuator_state {
 	CAM_ACTUATOR_ACQUIRE,
 	CAM_ACTUATOR_CONFIG,
 	CAM_ACTUATOR_START,
+	CAM_ACTUATOR_PARKLENS,
 };
 
 /**
