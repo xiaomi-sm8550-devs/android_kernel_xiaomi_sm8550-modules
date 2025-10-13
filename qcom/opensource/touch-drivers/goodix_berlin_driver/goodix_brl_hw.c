@@ -514,6 +514,73 @@ exit:
 }
 #endif
 
+#define GOODIX_GAME_CMD 0x17
+#define GOODIX_NORMAL_CMD	0x18
+static int brl_switch_edge_filter(struct goodix_ts_core *cd, bool high)
+{
+	struct goodix_ts_cmd cmd;
+	int ret = 0;
+
+	/*
+	this is how the data for game cmd works
+
+	data0 (0x00 = 00000000)
+
+	Bit 7 | Panel_Orientation | value: 0
+	Bit 6 | Panel_Orientation | value: 0
+	-------------------------------------------
+	Bit 5 | Touch_Tolerance | value: 0
+	Bit 4 | Touch_Tolerance | value: 0
+	Bit 3 | Touch_Tolerance | value: 0
+	-------------------------------------------
+	Bit 2 | Touch_UP_THRESHOLD | value: 0
+	Bit 1 | Touch_UP_THRESHOLD | value: 0
+	Bit 0 | Touch_UP_THRESHOLD | value: 0
+
+	data1 (0x00 = 00000000)
+
+	Bit 7 | Touch_Edge_Filter | value: 0
+	Bit 6 | Touch_Edge_Filter | value: 0
+	-------------------------------------------
+	Bit 5 | Touch_Aim_Sensitivity | value: 0
+	Bit 4 | Touch_Aim_Sensitivity | value: 0
+	Bit 3 | Touch_Aim_Sensitivity | value: 0
+	-------------------------------------------
+	Bit 2 | Touch_Tap_Stability | value: 0
+	Bit 1 | Touch_Tap_Stability | value: 0
+	Bit 0 | Touch_Tap_Stability | value: 0
+	*/
+
+    if (high) {
+		cmd.cmd = GOODIX_GAME_CMD;
+		cmd.len = 6;
+		cmd.data[0] = 0x00;
+		cmd.data[1] = 0x00;
+		ret = cd->hw_ops->send_cmd(cd, &cmd);
+		if (ret < 0) {
+			ts_err("edge filter: failed to send game cmd");
+			goto exit;
+		}
+		ts_info("edge filter: game mode");
+		cd->edge_filter = game;
+    } else {
+		cmd.cmd = GOODIX_NORMAL_CMD;
+		cmd.len = 6;
+		cmd.data[0] = 0x02;
+		cmd.data[1] = 0x80;
+		ret = cd->hw_ops->send_cmd(cd, &cmd);
+		if (ret < 0) {
+			ts_err("edge filter: failed to send normal cmd");
+			goto exit;
+		}
+		ts_info("edge filter: normal mode");
+		cd->edge_filter = normal;
+	}
+
+exit:
+	return ret;
+}
+
 int brl_resume(struct goodix_ts_core *cd)
 {
 	int ret = 0;
@@ -1750,6 +1817,7 @@ static struct goodix_ts_hw_ops brl_hw_ops = {
 	.get_capacitance_data = brl_get_capacitance_data,
 	.set_coor_mode = brl_set_coor_mode,
 	.switch_report_rate = brl_switch_report_rate,
+	.switch_edge_filter = brl_switch_edge_filter,
 };
 
 struct goodix_ts_hw_ops *goodix_get_hw_ops(void)
