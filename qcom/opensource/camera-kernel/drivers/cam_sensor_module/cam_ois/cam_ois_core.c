@@ -361,7 +361,202 @@ static int cam_ois_slaveInfo_pkt_parser(struct cam_ois_ctrl_t *o_ctrl,
 	return rc;
 }
 
-static int cam_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
+static int cam_bu24618_eis_fw_download(struct cam_ois_ctrl_t *o_ctrl)
+{
+	uint16_t                           total_bytes = 0;
+	uint8_t                           *ptr = NULL;
+	int32_t                            rc = 0, cnt, i, j;
+	uint32_t                           fw_size;
+	const struct firmware             *fw = NULL;
+	const char                        *fw_name_prog = NULL;
+	const char                        *fw_name_coeff = NULL;
+	const char                        *fw_name_mem = NULL;
+	char                               name_prog[34] = {0};
+	char                               name_coeff[34] = {0};
+	char                               name_mem[34] = {0};
+	struct device                     *dev = &(o_ctrl->pdev->dev);
+	struct cam_sensor_i2c_reg_setting  i2c_reg_setting;
+	void                              *vaddr = NULL;
+	if (!o_ctrl) {
+		CAM_ERR(CAM_OIS, "Invalid Args");
+		return -EINVAL;
+	}
+	snprintf(name_coeff, 34, "%s_eis.coeff", o_ctrl->ois_name);
+
+	snprintf(name_prog, 34, "%s_eis.prog", o_ctrl->ois_name);
+
+	snprintf(name_mem, 34, "%s_eis.mem", o_ctrl->ois_name);
+
+	/* cast pointer as const pointer*/
+	fw_name_prog = name_prog;
+	fw_name_coeff = name_coeff;
+	fw_name_mem = name_mem;
+
+	/* Load FW */
+	rc = request_firmware(&fw, fw_name_prog, dev);
+	if (rc) {
+		CAM_ERR(CAM_OIS, "Failed to locate %s", fw_name_prog);
+		return rc;
+	}
+
+	total_bytes = fw->size;
+	i2c_reg_setting.addr_type = o_ctrl->opcode.fw_addr_type;
+	i2c_reg_setting.data_type = CAMERA_SENSOR_I2C_TYPE_BYTE;
+	i2c_reg_setting.size = total_bytes;
+	i2c_reg_setting.delay = 0;
+	fw_size = (sizeof(struct cam_sensor_i2c_reg_array) * total_bytes);
+	vaddr = vmalloc(fw_size);
+	if (!vaddr) {
+		CAM_ERR(CAM_OIS,
+			"Failed in allocating i2c_array: fw_size: %u", fw_size);
+		release_firmware(fw);
+		return -ENOMEM;
+	}
+
+	CAM_DBG(CAM_OIS, "FW prog size:%d.", total_bytes);
+
+	i2c_reg_setting.reg_setting = (struct cam_sensor_i2c_reg_array *) (
+		vaddr);
+
+	for (i = 0, ptr = (uint8_t *)fw->data, j = 0; i < total_bytes;) {
+		for (cnt = 0; cnt < OIS_TRANS_SIZE && i < total_bytes;
+			cnt++, ptr++, i++) {
+				i2c_reg_setting.reg_setting[cnt].reg_addr =
+					o_ctrl->opcode.prog + j * OIS_TRANS_SIZE;
+				i2c_reg_setting.reg_setting[cnt].reg_data = *ptr;
+				i2c_reg_setting.reg_setting[cnt].delay = 0;
+				i2c_reg_setting.reg_setting[cnt].data_mask = 0;
+		}
+		i2c_reg_setting.size = cnt;
+
+		if (o_ctrl->opcode.is_addr_increase) {
+			j++;
+		}
+
+		rc = camera_io_dev_write_continuous(&(o_ctrl->io_master_info),
+			&i2c_reg_setting, CAM_SENSOR_I2C_WRITE_BURST);
+		if (rc < 0) {
+			CAM_ERR(CAM_OIS, "OIS FW(prog) size(%d) download failed. %d",
+				total_bytes, rc);
+			goto release_firmware;
+		}
+	}
+	vfree(vaddr);
+	vaddr = NULL;
+	fw_size = 0;
+	release_firmware(fw);
+
+	rc = request_firmware(&fw, fw_name_coeff, dev);
+	if (rc) {
+		CAM_ERR(CAM_OIS, "Failed to locate %s", fw_name_coeff);
+		return rc;
+	}
+
+	total_bytes = fw->size;
+	i2c_reg_setting.addr_type = o_ctrl->opcode.fw_addr_type;
+	i2c_reg_setting.data_type = CAMERA_SENSOR_I2C_TYPE_BYTE;
+	i2c_reg_setting.size = total_bytes;
+	i2c_reg_setting.delay = 0;
+	fw_size = (sizeof(struct cam_sensor_i2c_reg_array) * total_bytes);
+	vaddr = vmalloc(fw_size);
+	if (!vaddr) {
+		CAM_ERR(CAM_OIS,
+			"Failed in allocating i2c_array: fw_size: %u", fw_size);
+		release_firmware(fw);
+		return -ENOMEM;
+	}
+
+	CAM_DBG(CAM_OIS, "FW coeff size:%d", total_bytes);
+
+	i2c_reg_setting.reg_setting = (struct cam_sensor_i2c_reg_array *) (
+		vaddr);
+
+	for (i = 0, ptr = (uint8_t *)fw->data, j = 0; i < total_bytes;) {
+		for (cnt = 0; cnt < OIS_TRANS_SIZE && i < total_bytes;
+			cnt++, ptr++, i++) {
+				i2c_reg_setting.reg_setting[cnt].reg_addr =
+					o_ctrl->opcode.coeff + j * OIS_TRANS_SIZE;
+				i2c_reg_setting.reg_setting[cnt].reg_data = *ptr;
+				i2c_reg_setting.reg_setting[cnt].delay = 0;
+				i2c_reg_setting.reg_setting[cnt].data_mask = 0;
+		}
+		i2c_reg_setting.size = cnt;
+
+		if (o_ctrl->opcode.is_addr_increase) {
+			j++;
+		}
+
+		rc = camera_io_dev_write_continuous(&(o_ctrl->io_master_info),
+			&i2c_reg_setting, CAM_SENSOR_I2C_WRITE_BURST);
+
+		if (rc < 0) {
+			CAM_ERR(CAM_OIS, "OIS FW(coeff) size(%d) download failed rc: %d",
+				total_bytes, rc);
+			goto release_firmware;
+		}
+	}
+	vfree(vaddr);
+	vaddr = NULL;
+	fw_size = 0;
+	release_firmware(fw);
+
+	rc = request_firmware(&fw, fw_name_mem, dev);
+	if (rc) {
+		CAM_ERR(CAM_OIS, "Failed to locate %s", fw_name_mem);
+		return rc;
+	}
+
+	total_bytes = fw->size;
+	i2c_reg_setting.addr_type = o_ctrl->opcode.fw_addr_type;
+	i2c_reg_setting.data_type = CAMERA_SENSOR_I2C_TYPE_BYTE;
+	i2c_reg_setting.size = total_bytes;
+	i2c_reg_setting.delay = 0;
+	fw_size = (sizeof(struct cam_sensor_i2c_reg_array) * total_bytes);
+	vaddr = vmalloc(fw_size);
+	if (!vaddr) {
+		CAM_ERR(CAM_OIS,
+			"Failed in allocating i2c_array: fw_size: %u", fw_size);
+		release_firmware(fw);
+		return -ENOMEM;
+	}
+
+	CAM_DBG(CAM_OIS, "FW mem size:%d", total_bytes);
+
+	i2c_reg_setting.reg_setting = (struct cam_sensor_i2c_reg_array *) (
+		vaddr);
+
+	for (i = 0, ptr = (uint8_t *)fw->data, j = 0; i < total_bytes;) {
+		for (cnt = 0; cnt < OIS_TRANS_SIZE && i < total_bytes;
+			cnt++, ptr++, i++) {
+				i2c_reg_setting.reg_setting[cnt].reg_addr =
+					o_ctrl->opcode.memory + j * OIS_TRANS_SIZE;
+				i2c_reg_setting.reg_setting[cnt].reg_data = *ptr;
+				i2c_reg_setting.reg_setting[cnt].delay = 0;
+				i2c_reg_setting.reg_setting[cnt].data_mask = 0;
+		}
+		i2c_reg_setting.size = cnt;
+
+		if (o_ctrl->opcode.is_addr_increase) {
+			j++;
+		}
+
+		rc = camera_io_dev_write_continuous(&(o_ctrl->io_master_info),
+			&i2c_reg_setting, CAM_SENSOR_I2C_WRITE_BURST);
+
+		if (rc < 0)
+			CAM_ERR(CAM_OIS, "OIS FW(mem) size(%d) download failed rc: %d",
+				total_bytes, rc);
+	}
+
+release_firmware:
+	vfree(vaddr);
+	vaddr = NULL;
+	fw_size = 0;
+	release_firmware(fw);
+	return rc;
+}
+
+static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 {
 	uint16_t                           total_bytes = 0;
 	uint8_t                           *ptr = NULL;
@@ -607,6 +802,53 @@ release_firmware:
 	release_firmware(fw);
 	return rc;
 }
+
+static int cam_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
+{
+	int32_t   rc  = 0;
+
+	switch (o_ctrl->opcode.fw_download_type){
+		case 24:
+			CAM_DBG(CAM_OIS, "Apply bu24618 EIS SYNC firmware update function");
+			rc = cam_bu24618_eis_fw_download(o_ctrl);
+			break;
+
+		default:
+			CAM_DBG(CAM_OIS, "Apply default firmware update function");
+			rc = cam_default_ois_fw_download(o_ctrl);
+			break;
+	}
+
+	return rc;
+}
+
+/*
+static int cam_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
+{
+	int32_t   rc         = 0;
+	uint16_t  i          = 0;
+
+	if(121 == o_ctrl->opcode.is_addr_indata) {
+		CAM_INFO(CAM_OIS, "Apply sem1217s OIS firmware update function");
+		for (i = 0, rc = -EINVAL; i < FIRMWARE_UPDATE_RETRY_TIMES && rc; ++i) {
+			rc = cam_sem1217s_ois_fw_download(o_ctrl);
+			if (rc) {
+				CAM_ERR(CAM_OIS, "Failed to update sem1217s firmware at times: %d", i);
+			}
+		}
+	} else if (122 == o_ctrl->opcode.is_addr_indata) {
+		CAM_DBG(CAM_OIS, "Apply rumbas4h OIS firmware update function");
+		rc = cam_rumbas4h_ois_fw_download(o_ctrl);
+	} else if(24 == o_ctrl->opcode.is_addr_indata) {
+		CAM_DBG(CAM_OIS, "Apply bu24618 EIS SYNC firmware update function");
+		rc = cam_bu24618_eis_fw_download(o_ctrl);
+	} else {
+		CAM_DBG(CAM_OIS, "Apply default firmware update function");
+		rc = cam_default_ois_fw_download(o_ctrl);
+	}
+
+	return rc;
+} */
 
 /**
  * cam_ois_pkt_parse - Parse csl packet
