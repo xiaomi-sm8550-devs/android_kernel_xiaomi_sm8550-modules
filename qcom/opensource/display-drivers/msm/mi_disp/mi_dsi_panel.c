@@ -853,6 +853,10 @@ bool is_backlight_set_skip(struct dsi_panel *panel, u32 bl_lvl)
 			DSI_INFO("[%s] skip set backlight due to Peak Hdr Mode on\n", panel->type);
 			return true;
 		}
+	} else if (!panel->mi_cfg.bl_enable) {
+		/* Added to support AOSP backlight handling */
+		DISP_INFO("[%s] skip set backlight %d due to aod on\n", panel->type, bl_lvl);
+		return true;
 	} else {
 		return false;
 	}

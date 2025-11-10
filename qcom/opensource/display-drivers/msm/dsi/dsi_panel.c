@@ -4907,6 +4907,9 @@ int dsi_panel_set_lp1(struct dsi_panel *panel)
 		       panel->name, rc);
 
 exit:
+
+    panel->mi_cfg.bl_enable = false; 
+
 	mutex_unlock(&panel->panel_lock);
 
 	DISP_TIME_INFO("%s panel: DSI_CMD_SET_LP1\n", panel->type);
@@ -5592,6 +5595,7 @@ int dsi_panel_disable(struct dsi_panel *panel)
 	panel->mi_cfg.panel_state = PANEL_STATE_OFF;
 	mi_cfg->aod_to_normal_statue = false;
 	mi_cfg->doze_brightness = DOZE_TO_NORMAL;
+	panel->mi_cfg.bl_enable = true;
 	mi_cfg->last_doze_brightness = DOZE_TO_NORMAL;
 	mi_cfg->is_em_cycle_16_pulse = false;
 	mi_cfg->lhbm_0size_on = false;

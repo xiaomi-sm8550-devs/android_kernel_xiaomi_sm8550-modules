@@ -230,6 +230,8 @@ static int mi_dsi_panel_parse_backlight_config(struct dsi_panel *panel)
 	struct dsi_parser_utils *utils = &panel->utils;
 	struct mi_dsi_panel_cfg *mi_cfg = &panel->mi_cfg;
 
+	mi_cfg->bl_enable = true; 
+
 	rc = utils->read_u32(utils->data, "mi,panel-on-dimming-delay", &mi_cfg->panel_on_dimming_delay);
 	if (rc) {
 		mi_cfg->panel_on_dimming_delay = 0;
