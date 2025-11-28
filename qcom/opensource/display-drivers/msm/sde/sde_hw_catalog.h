@@ -1968,6 +1968,8 @@ struct sde_mdss_cfg {
 	struct list_head irq_offset_list;
 	DECLARE_BITMAP(features, SDE_FEATURE_MAX);
 	bool has_line_insertion;
+	bool has_hdr;
+	bool has_hdr_plus;
 
 	/* Supported Pixel Format Lists */
 	struct sde_format_extended *dma_formats;
