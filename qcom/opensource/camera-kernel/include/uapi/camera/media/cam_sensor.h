@@ -366,6 +366,8 @@ struct cam_ois_opcode {
 	__u8 fw_addr_type;
 	__u8 is_addr_increase;
 	__u8 customized_ois_flag;
+	__u16 fw_download_type;
+	__u32 fw_version;
 #endif
 } __attribute__((packed));
 
