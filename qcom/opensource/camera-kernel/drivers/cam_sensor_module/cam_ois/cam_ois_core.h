@@ -8,9 +8,14 @@
 
 #include <linux/cma.h>
 #include "cam_ois_dev.h"
+#include "cam_req_mgr_dev.h" // xiaomi add
 
 #define OIS_NAME_LEN 32
 
+#define FIRMWARE_UPDATE_FORCED                  1
+#define FIRMWARE_UPDATE_EVERY_TIMES             2
+
+#define FIRMWARE_UPDATE_RETRY_TIMES             1
 /**
  * @power_info: power setting info to control the power
  *
@@ -33,5 +38,15 @@ void cam_ois_shutdown(struct cam_ois_ctrl_t *o_ctrl);
 
 struct completion *cam_ois_get_i3c_completion(uint32_t index);
 
+/**
+ * cam_ois_update_req_mgr - camera ois update reg manager
+ * @o_ctrl:        camera ois controller
+ * @csl_packet:    camera packet
+ *
+ * Returns success or failure
+ */
+int cam_ois_update_req_mgr(
+	struct cam_ois_ctrl_t *o_ctrl,
+	struct cam_packet *csl_packet);
 #endif
 /* _CAM_OIS_CORE_H_ */

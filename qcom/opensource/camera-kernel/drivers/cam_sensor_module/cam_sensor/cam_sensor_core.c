@@ -1009,7 +1009,6 @@ int cam_sensor_match_id(struct cam_sensor_ctrl_t *s_ctrl)
 		return -EINVAL;
 	}
 
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
 	/* xiaomi modified start */
 	rc = camera_io_dev_read(
 		&(s_ctrl->io_master_info),
@@ -1017,7 +1016,6 @@ int cam_sensor_match_id(struct cam_sensor_ctrl_t *s_ctrl)
 		&chipid, s_ctrl->sensor_probe_addr_type,
 		s_ctrl->sensor_probe_data_type, true);
 	/* xiaomi modified end */
-	#endif
 
 	if (s_ctrl->hw_no_ops)
 		return rc;

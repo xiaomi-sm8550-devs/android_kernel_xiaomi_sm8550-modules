@@ -77,7 +77,9 @@ enum cam_ois_packet_opcodes {
 	CAM_OIS_PACKET_OPCODE_INIT,
 	CAM_OIS_PACKET_OPCODE_OIS_CONTROL,
 	CAM_OIS_PACKET_OPCODE_READ,
-	CAM_OIS_PACKET_OPCODE_WRITE_TIME
+	CAM_OIS_PACKET_OPCODE_WRITE_TIME,
+	CAM_OIS_PACKET_OPCODE_OIS_MANUAL_MODE,
+	CAM_OIS_PACKET_OPCODE_INIT_SECOND
 };
 
 enum camera_sensor_i2c_op_code {
@@ -361,11 +363,11 @@ struct cam_ois_opcode {
 	__u32 coeff;
 	__u32 pheripheral;
 	__u32 memory;
-#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
 	__u8 fw_addr_type;
 	__u8 is_addr_increase;
+	__u16 fw_download_type;
+	__u32 fw_version;
 	__u8 customized_ois_flag;
-#endif
 } __attribute__((packed));
 
 /**

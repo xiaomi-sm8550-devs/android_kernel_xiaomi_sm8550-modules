@@ -64,6 +64,10 @@ int32_t cam_sensor_i2c_read_data(
 	struct i2c_settings_array *i2c_settings,
 	struct camera_io_master *io_master_info);
 
+int32_t cam_sensor_i2c_read_write_ois_data(
+	struct i2c_settings_array *i2c_settings,
+	struct camera_io_master *io_master_info);
+
 int32_t delete_request(struct i2c_settings_array *i2c_array);
 int cam_sensor_util_request_gpio_table(
 	struct cam_hw_soc_info *soc_info, int gpio_en);
@@ -102,4 +106,9 @@ static inline int cam_sensor_util_aon_registration(uint32_t phy_idx, uint8_t aon
 	return cam_csiphy_util_update_aon_registration(phy_idx, aon_camera_id);
 }
 
+// xiaomi add
+struct skip_frame {
+	uint64_t req_id;
+	uint64_t skip_num;
+};
 #endif /* _CAM_SENSOR_UTIL_H_ */
