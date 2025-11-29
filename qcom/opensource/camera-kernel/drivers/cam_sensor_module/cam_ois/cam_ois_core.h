@@ -11,6 +11,9 @@
 
 #define OIS_NAME_LEN 32
 
+#define FIRMWARE_UPDATE_FORCED                  1
+#define FIRMWARE_UPDATE_EVERY_TIMES             2
+
 /**
  * @power_info: power setting info to control the power
  *
