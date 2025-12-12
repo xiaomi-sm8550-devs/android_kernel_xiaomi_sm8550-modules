@@ -57,6 +57,7 @@ enum cam_debug_module_id {
 	CAM_PRESIL_CORE,         /* bit 32 */
 	CAM_TPG,                 /* bit 33 */
 	CAM_DMA_FENCE,           /* bit 34 */
+	MI_PARKLENS = 61,        /* bit 61 */
 	CAM_DBG_MOD_MAX
 };
 
@@ -115,6 +116,7 @@ static const char *cam_debug_mod_name[CAM_DBG_MOD_MAX] = {
 	[CAM_PRESIL_CORE] = "CAM-CORE-PRESIL",
 	[CAM_TPG]         = "CAM-TPG",
 	[CAM_DMA_FENCE]   = "CAM_DMA_FENCE",
+	[MI_PARKLENS]     = "MI-CAM-PARKLENS",
 };
 
 #define ___CAM_DBG_MOD_NAME(module_id)                                      \
@@ -153,6 +155,7 @@ __builtin_choose_expr(((module_id) == CAM_CRE), "CAM-CRE",                  \
 __builtin_choose_expr(((module_id) == CAM_PRESIL_CORE), "CAM-CORE-PRESIL",  \
 __builtin_choose_expr(((module_id) == CAM_TPG), "CAM-TPG",                  \
 __builtin_choose_expr(((module_id) == CAM_DMA_FENCE), "CAM-DMA-FENCE",      \
+__builtin_choose_expr(((module_id) == MI_PARKLENS), "MI-CAM-PARKLENS",      \
 "CAMERA")))))))))))))))))))))))))))))))))))
 
 #define CAM_DBG_MOD_NAME(module_id) \
