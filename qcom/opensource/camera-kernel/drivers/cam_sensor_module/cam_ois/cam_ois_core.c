@@ -15,6 +15,7 @@
 #include "cam_res_mgr_api.h"
 #include "cam_common_util.h"
 #include "cam_packet_util.h"
+#include "xiaomi_flash_ois.h"
 
 int32_t cam_ois_construct_default_power_setting(
 	struct cam_sensor_power_ctrl_t *power_info)
@@ -618,7 +619,7 @@ release_firmware:
 static int cam_ois_pkt_parse(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 {
 	int32_t                         rc = 0;
-	int32_t                         i = 0;
+	int32_t                         i = 0, j =0;
 	uint32_t                        total_cmd_buf_in_bytes = 0;
 	struct common_header           *cmm_hdr = NULL;
 	uintptr_t                       generic_ptr;
@@ -636,6 +637,8 @@ static int cam_ois_pkt_parse(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 	struct cam_ois_soc_private     *soc_private =
 		(struct cam_ois_soc_private *)o_ctrl->soc_info.soc_private;
 	struct cam_sensor_power_ctrl_t  *power_info = &soc_private->power_info;
+	const struct flash_ois_function *ps = pflash_ois;
+	uint8_t                          config_flag = 0;
 
 	ioctl_ctrl = (struct cam_control *)arg;
 	if (copy_from_user(&dev_config,
@@ -828,91 +831,107 @@ static int cam_ois_pkt_parse(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 				goto end;
 			}
 		}
+		//interface for different ois add by xiaomi
+		if ( o_ctrl->opcode.customized_ois_flag ) {
+			for(j = 0; j < sizeof(pflash_ois) / sizeof(struct flash_ois_function) ; j++)
+			{
+				if(ps[j].flag == o_ctrl->opcode.customized_ois_flag){
+					config_flag++;
+					rc = ps[j].mi_ois_pkt_download(o_ctrl);
+					if (rc) {
+						CAM_ERR(CAM_OIS, "Failed OIS Customer Pkt Download");
+						goto pwr_dwn;
+					}
+				}
+			}
+			if ( config_flag != 1 ) {
+				CAM_ERR(CAM_OIS, "ERROR! need  pkt function or repeat flag , flag  %d", config_flag);
+			}
+		} else {
+			if (o_ctrl->i2c_fwinit_data.is_settings_valid == 1) {
+				rc = cam_ois_apply_settings(o_ctrl,
+					&o_ctrl->i2c_fwinit_data);
+				if ((rc == -EAGAIN) &&
+					(o_ctrl->io_master_info.master_type == CCI_MASTER)) {
+					CAM_WARN(CAM_OIS,
+						"CCI HW is restting: Reapplying fwinit settings");
+					usleep_range(1000, 1010);
+					rc = cam_ois_apply_settings(o_ctrl,
+						&o_ctrl->i2c_fwinit_data);
+				}
+				if (rc) {
+					CAM_ERR(CAM_OIS,
+						"Cannot apply fwinit data %d",
+						rc);
+					goto pwr_dwn;
+				} else {
+					CAM_DBG(CAM_OIS, "OIS fwinit settings success");
+				}
+			}
 
-		if (o_ctrl->i2c_fwinit_data.is_settings_valid == 1) {
-			rc = cam_ois_apply_settings(o_ctrl,
-				&o_ctrl->i2c_fwinit_data);
+			if (o_ctrl->ois_fw_flag) {
+				rc = cam_ois_fw_download(o_ctrl);
+				if (rc) {
+					CAM_ERR(CAM_OIS, "Failed OIS FW Download");
+					goto pwr_dwn;
+				}
+			}
+
+			rc = cam_ois_apply_settings(o_ctrl, &o_ctrl->i2c_init_data);
 			if ((rc == -EAGAIN) &&
 				(o_ctrl->io_master_info.master_type == CCI_MASTER)) {
 				CAM_WARN(CAM_OIS,
-					"CCI HW is restting: Reapplying fwinit settings");
+					"CCI HW is restting: Reapplying INIT settings");
 				usleep_range(1000, 1010);
 				rc = cam_ois_apply_settings(o_ctrl,
-					&o_ctrl->i2c_fwinit_data);
+					&o_ctrl->i2c_init_data);
 			}
-			if (rc) {
+			if (rc < 0) {
 				CAM_ERR(CAM_OIS,
-					"Cannot apply fwinit data %d",
+					"Cannot apply Init settings: rc = %d",
 					rc);
 				goto pwr_dwn;
 			} else {
-				CAM_DBG(CAM_OIS, "OIS fwinit settings success");
+				CAM_DBG(CAM_OIS, "apply Init settings success");
 			}
-		}
 
-		if (o_ctrl->ois_fw_flag) {
-			rc = cam_ois_fw_download(o_ctrl);
-			if (rc) {
-				CAM_ERR(CAM_OIS, "Failed OIS FW Download");
-				goto pwr_dwn;
-			}
-		}
-
-		rc = cam_ois_apply_settings(o_ctrl, &o_ctrl->i2c_init_data);
-		if ((rc == -EAGAIN) &&
-			(o_ctrl->io_master_info.master_type == CCI_MASTER)) {
-			CAM_WARN(CAM_OIS,
-				"CCI HW is restting: Reapplying INIT settings");
-			usleep_range(1000, 1010);
-			rc = cam_ois_apply_settings(o_ctrl,
-				&o_ctrl->i2c_init_data);
-		}
-		if (rc < 0) {
-			CAM_ERR(CAM_OIS,
-				"Cannot apply Init settings: rc = %d",
-				rc);
-			goto pwr_dwn;
-		} else {
-			CAM_DBG(CAM_OIS, "apply Init settings success");
-		}
-
-		if (o_ctrl->is_ois_calib) {
-			rc = cam_ois_apply_settings(o_ctrl,
-				&o_ctrl->i2c_calib_data);
-			if ((rc == -EAGAIN) &&
-				(o_ctrl->io_master_info.master_type == CCI_MASTER)) {
-				CAM_WARN(CAM_OIS,
-					"CCI HW is restting: Reapplying calib settings");
-				usleep_range(1000, 1010);
+			if (o_ctrl->is_ois_calib) {
 				rc = cam_ois_apply_settings(o_ctrl,
 					&o_ctrl->i2c_calib_data);
+				if ((rc == -EAGAIN) &&
+					(o_ctrl->io_master_info.master_type == CCI_MASTER)) {
+					CAM_WARN(CAM_OIS,
+						"CCI HW is restting: Reapplying calib settings");
+					usleep_range(1000, 1010);
+					rc = cam_ois_apply_settings(o_ctrl,
+						&o_ctrl->i2c_calib_data);
+				}
+				if (rc) {
+					CAM_ERR(CAM_OIS, "Cannot apply calib data");
+					goto pwr_dwn;
+				} else {
+					CAM_DBG(CAM_OIS, "apply calib data settings success");
+				}
 			}
-			if (rc) {
-				CAM_ERR(CAM_OIS, "Cannot apply calib data");
-				goto pwr_dwn;
-			} else {
-				CAM_DBG(CAM_OIS, "apply calib data settings success");
-			}
-		}
 #if defined(CONFIG_TARGET_PRODUCT_NUWA)
-		if (o_ctrl->i2c_postinit_data.is_settings_valid == 1) {
-			rc = cam_ois_apply_settings(o_ctrl, &o_ctrl->i2c_postinit_data);
-			if ((rc == -EAGAIN) && (o_ctrl->io_master_info.master_type == CCI_MASTER)) {
-				CAM_WARN(CAM_OIS, "CCI HW is restting: Reapplying postinit settings");
-				usleep_range(1000, 1010);
+			if (o_ctrl->i2c_postinit_data.is_settings_valid == 1) {
 				rc = cam_ois_apply_settings(o_ctrl, &o_ctrl->i2c_postinit_data);
-			}
-			if (rc) {
-				CAM_ERR(CAM_OIS, "Cannot apply postinit data %d", rc);
-				goto pwr_dwn;
-			}
-			else {
+				if ((rc == -EAGAIN) && (o_ctrl->io_master_info.master_type == CCI_MASTER)) {
+					CAM_WARN(CAM_OIS, "CCI HW is restting: Reapplying postinit settings");
+					usleep_range(1000, 1010);
+					rc = cam_ois_apply_settings(o_ctrl, &o_ctrl->i2c_postinit_data);
+				}
+				if (rc) {
+					CAM_ERR(CAM_OIS, "Cannot apply postinit data %d", rc);
+					goto pwr_dwn;
+				}
+				else {
 				CAM_DBG(CAM_OIS, "OIS postinit settings success");
+				}
 			}
-		}
 #endif
 		o_ctrl->cam_ois_state = CAM_OIS_CONFIG;
-
+		}
 		rc = delete_request(&o_ctrl->i2c_fwinit_data);
 		if (rc < 0) {
 			CAM_WARN(CAM_OIS,
@@ -1299,6 +1318,10 @@ int cam_ois_driver_cmd(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 			o_ctrl->cam_ois_state);
 		}
 		o_ctrl->cam_ois_state = CAM_OIS_CONFIG;
+		break;
+	case CAM_FLUSH_REQ:
+		// ignore the flush cmd
+		CAM_DBG(CAM_OIS, "CAM_FLUSH_REQ");
 		break;
 	default:
 		CAM_ERR(CAM_OIS, "invalid opcode");
