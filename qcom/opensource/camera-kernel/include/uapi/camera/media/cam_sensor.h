@@ -362,7 +362,7 @@ struct cam_ois_opcode {
 	__u32 coeff;
 	__u32 pheripheral;
 	__u32 memory;
-#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	__u8 fw_addr_type;
 	__u8 is_addr_increase;
 	__u8 customized_ois_flag;

@@ -420,7 +420,7 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 	}
 
 	total_bytes = fw->size;
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	i2c_reg_setting.addr_type = o_ctrl->opcode.fw_addr_type;
 	#else
 	i2c_reg_setting.addr_type = CAMERA_SENSOR_I2C_TYPE_BYTE;
@@ -490,7 +490,7 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 	}
 
 	total_bytes = fw->size;
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	i2c_reg_setting.addr_type = o_ctrl->opcode.fw_addr_type;
 	#else
 	i2c_reg_setting.addr_type = CAMERA_SENSOR_I2C_TYPE_BYTE;
