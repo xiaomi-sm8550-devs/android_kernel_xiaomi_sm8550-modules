@@ -11,6 +11,11 @@
 int32_t cam_eeprom_driver_cmd(struct cam_eeprom_ctrl_t *e_ctrl, void *arg);
 int32_t cam_eeprom_parse_read_memory_map(struct device_node *of_node,
 	struct cam_eeprom_ctrl_t *e_ctrl);
+int32_t cam_eeprom_publish_dev_info(struct cam_req_mgr_device_info *info);
+int32_t cam_eeprom_establish_link(
+	struct cam_req_mgr_core_dev_link_setup *link);
+int32_t cam_eeprom_apply_request(struct cam_req_mgr_apply_request *apply);
+int32_t cam_eeprom_flush_request(struct cam_req_mgr_flush_request *flush_req);
 /**
  * @e_ctrl: EEPROM ctrl structure
  *

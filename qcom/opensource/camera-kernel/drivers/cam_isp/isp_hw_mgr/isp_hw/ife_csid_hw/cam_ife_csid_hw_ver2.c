@@ -3390,8 +3390,6 @@ static int cam_ife_csid_ver2_init_config_rdi_path(
 	 * Packing format
 	 */
 
-	cfg1 = cam_io_r_mb(mem_base + path_reg->cfg1_addr);
-
 	cfg1 |= (path_cfg->crop_enable << path_reg->crop_h_en_shift_val) |
 		(path_cfg->crop_enable <<
 		 path_reg->crop_v_en_shift_val);
@@ -3555,8 +3553,6 @@ static int cam_ife_csid_ver2_init_config_pxl_path(
 	 * Timestamp enable and strobe selection
 	 * Pix store enable
 	 */
-
-	cfg1 = cam_io_r_mb(mem_base + path_reg->cfg1_addr);
 
 	if (csid_hw->flags.binning_enabled) {
 
@@ -4880,11 +4876,11 @@ int cam_ife_csid_ver2_start(void *hw_priv, void *args,
 	struct cam_isp_resource_node          *res;
 	struct cam_csid_hw_start_args         *start_args;
 	struct cam_ife_csid_ver2_reg_info     *csid_reg;
+	struct cam_ife_csid_ver2_path_cfg     *path_cfg;
 	struct cam_hw_soc_info                *soc_info;
 	struct cam_hw_info                    *hw_info;
 	uint32_t                               rup_aup_mask = 0;
 	int                                    rc = 0, i;
-	bool                                   delay_rdi0_enable = false;
 
 	if (!hw_priv || !args) {
 		CAM_ERR(CAM_ISP, "CSID Invalid params");
@@ -4994,10 +4990,12 @@ int cam_ife_csid_ver2_start(void *hw_priv, void *args,
 	for (i = 0; i < start_args->num_res; i++) {
 		res = start_args->node_res[i];
 
-		if ((csid_hw->flags.rdi_lcr_en) &&
-			(res->res_id == CAM_IFE_PIX_PATH_RES_RDI_0)) {
-			delay_rdi0_enable = true;
-			continue;
+		if (csid_hw->flags.rdi_lcr_en &&
+			res->res_id < CAM_IFE_PIX_PATH_RES_MAX) {
+			path_cfg = res->res_priv;
+
+			if (path_cfg && path_cfg->lcr_en)
+				continue;
 		}
 
 		cam_ife_csid_ver2_enable_path(csid_hw, res);
@@ -5006,11 +5004,19 @@ int cam_ife_csid_ver2_start(void *hw_priv, void *args,
 			csid_hw->hw_intf->hw_idx, res->res_type, res->res_id);
 	}
 
-	if (delay_rdi0_enable) {
-		res = &csid_hw->path_res[CAM_IFE_PIX_PATH_RES_RDI_0];
+	for (i = 0; csid_hw->flags.rdi_lcr_en && i < start_args->num_res; i++) {
+		res = start_args->node_res[i];
+		if (res->res_id >= CAM_IFE_PIX_PATH_RES_MAX)
+			continue;
+
+		path_cfg = res->res_priv;
+		if (!path_cfg || !path_cfg->lcr_en)
+			continue;
+
 		cam_ife_csid_ver2_enable_path(csid_hw, res);
-		CAM_DBG(CAM_ISP, "CSID[%u] Enabling RDI0 after all paths for LCR-PD cases",
-			csid_hw->hw_intf->hw_idx);
+		CAM_DBG(CAM_ISP,
+			"CSID[%u] Enabling LCR path %s after non-LCR paths",
+			csid_hw->hw_intf->hw_idx, res->res_name);
 	}
 
 	if (csid_hw->debug_info.test_bus_val) {
@@ -5895,12 +5901,6 @@ static int cam_ife_csid_ver2_rdi_lcr_cfg(
 		return -EINVAL;
 	}
 
-	if (!path_cfg->sfe_shdr && (res->res_id != CAM_IFE_PIX_PATH_RES_RDI_0)) {
-		CAM_ERR(CAM_ISP, "Invalid res: %s, capabilities 0x%x sfe_shdr: %u",
-			res->res_name, path_reg->capabilities, path_cfg->sfe_shdr);
-		return -EINVAL;
-	}
-
 	/*
 	 * LCR should not be on for a resource if CSID is giving packed data
 	 * this case would come for formats which are not supported.
@@ -5925,9 +5925,6 @@ static int cam_ife_csid_ver2_rdi_lcr_cfg(
 	csid_hw->flags.rdi_lcr_en = true;
 	path_cfg->lcr_en = true;
 
-	CAM_DBG(CAM_ISP, "CSID[%u] %s top_cfg %u",
-		csid_hw->hw_intf->hw_idx, res->res_name, csid_hw->top_cfg.rdi_lcr);
-
 	return 0;
 }
 
@@ -5946,10 +5943,6 @@ static int cam_ife_csid_init_config_update(
 	}
 
 	path_cfg = (struct cam_ife_csid_ver2_path_cfg *)res->res_priv;
-	/* Skip epoch update if resource does not handle camif IRQs */
-	if (!path_cfg->handle_camif_irq)
-		goto end;
-
 	path_cfg->epoch_cfg = (path_cfg->end_line - path_cfg->start_line) *
 		init_cfg->init_config->epoch_cfg.epoch_factor / 100;
 
@@ -5962,7 +5955,7 @@ static int cam_ife_csid_init_config_update(
 	CAM_DBG(CAM_ISP,
 		"Init Update for res_name: %s epoch_factor: %x",
 		res->res_name, path_cfg->epoch_cfg);
-end:
+
 	return 0;
 }
 

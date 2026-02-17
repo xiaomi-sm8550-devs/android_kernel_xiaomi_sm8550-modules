@@ -189,6 +189,7 @@ static int cam_ois_i2c_component_bind(struct device *dev,
 	struct device *master_dev, void *data)
 {
 	int                          rc = 0;
+	int                          i;
 	struct i2c_client           *client = NULL;
 	struct cam_ois_ctrl_t       *o_ctrl = NULL;
 	struct cam_ois_soc_private  *soc_private = NULL;
@@ -215,6 +216,28 @@ static int cam_ois_i2c_component_bind(struct device *dev,
 	o_ctrl->io_master_info.master_type = I2C_MASTER;
 	o_ctrl->io_master_info.client = client;
 
+	o_ctrl->i2c_data.per_frame =
+		kzalloc(sizeof(struct i2c_settings_array) *
+		MAX_PER_FRAME_ARRAY, GFP_KERNEL);
+	if (!o_ctrl->i2c_data.per_frame) {
+		CAM_ERR(CAM_OIS, "Failed to alloc per_frame");
+		rc = -ENOMEM;
+		goto octrl_free;
+	}
+
+	INIT_LIST_HEAD(&(o_ctrl->i2c_data.init_settings.list_head));
+	INIT_LIST_HEAD(&(o_ctrl->i2c_data.parklens_settings.list_head));
+	for (i = 0; i < MAX_PER_FRAME_ARRAY; i++)
+		INIT_LIST_HEAD(&(o_ctrl->i2c_data.per_frame[i].list_head));
+
+	parklens_atomic_set(&(o_ctrl->parklens_ctrl.parklens_opcode),
+		ENTER_PARKLENS_WITH_POWERDOWN);
+	parklens_atomic_set(&(o_ctrl->parklens_ctrl.exit_result),
+		PARKLENS_ENTER);
+	parklens_atomic_set(&(o_ctrl->parklens_ctrl.parklens_state),
+		PARKLENS_INVALID);
+	o_ctrl->parklens_ctrl.parklens_thread = NULL;
+
 	soc_private = kzalloc(sizeof(struct cam_ois_soc_private),
 		GFP_KERNEL);
 	if (!soc_private) {
@@ -233,6 +256,12 @@ static int cam_ois_i2c_component_bind(struct device *dev,
 	if (rc)
 		goto soc_free;
 
+	o_ctrl->bridge_intf.ops.get_dev_info = cam_ois_publish_dev_info;
+	o_ctrl->bridge_intf.ops.link_setup = cam_ois_establish_link;
+	o_ctrl->bridge_intf.ops.apply_req = cam_ois_apply_request;
+	o_ctrl->bridge_intf.ops.flush_req = cam_ois_flush_request;
+	o_ctrl->bridge_intf.ops.do_frame_skip = cam_ois_do_frame_skip;
+
 	o_ctrl->cam_ois_state = CAM_OIS_INIT;
 
 	return rc;
@@ -240,6 +269,7 @@ static int cam_ois_i2c_component_bind(struct device *dev,
 soc_free:
 	kfree(soc_private);
 octrl_free:
+	kfree(o_ctrl->i2c_data.per_frame);
 	kfree(o_ctrl);
 probe_failure:
 	return rc;
@@ -284,6 +314,7 @@ static void cam_ois_i2c_component_unbind(struct device *dev,
 	power_info = &soc_private->power_info;
 
 	kfree(o_ctrl->soc_info.soc_private);
+	kfree(o_ctrl->i2c_data.per_frame);
 	v4l2_set_subdevdata(&o_ctrl->v4l2_dev_str.sd, NULL);
 	kfree(o_ctrl);
 }
@@ -329,6 +360,7 @@ static int cam_ois_component_bind(struct device *dev,
 	struct device *master_dev, void *data)
 {
 	int32_t                         rc = 0;
+	int                             i;
 	struct cam_ois_ctrl_t          *o_ctrl = NULL;
 	struct cam_ois_soc_private     *soc_private = NULL;
 	bool                            i3c_i2c_target;
@@ -364,14 +396,33 @@ static int cam_ois_component_bind(struct device *dev,
 	o_ctrl->soc_info.soc_private = soc_private;
 	soc_private->power_info.dev  = &pdev->dev;
 
+	o_ctrl->i2c_data.per_frame =
+		kzalloc(sizeof(struct i2c_settings_array) *
+		MAX_PER_FRAME_ARRAY, GFP_KERNEL);
+	if (!o_ctrl->i2c_data.per_frame) {
+		rc = -ENOMEM;
+		goto free_soc;
+	}
+
+	for (i = 0; i < MAX_PER_FRAME_ARRAY; i++)
+		INIT_LIST_HEAD(&(o_ctrl->i2c_data.per_frame[i].list_head));
+
+	INIT_LIST_HEAD(&(o_ctrl->i2c_data.parklens_settings.list_head));
 	INIT_LIST_HEAD(&(o_ctrl->i2c_init_data.list_head));
 	INIT_LIST_HEAD(&(o_ctrl->i2c_calib_data.list_head));
 	INIT_LIST_HEAD(&(o_ctrl->i2c_fwinit_data.list_head));
-#if defined(CONFIG_TARGET_PRODUCT_NUWA)
+#if defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	INIT_LIST_HEAD(&(o_ctrl->i2c_postinit_data.list_head));
 #endif
 	INIT_LIST_HEAD(&(o_ctrl->i2c_mode_data.list_head));
 	INIT_LIST_HEAD(&(o_ctrl->i2c_time_data.list_head));
+	parklens_atomic_set(&(o_ctrl->parklens_ctrl.parklens_opcode),
+		ENTER_PARKLENS_WITH_POWERDOWN);
+	parklens_atomic_set(&(o_ctrl->parklens_ctrl.exit_result),
+		PARKLENS_ENTER);
+	parklens_atomic_set(&(o_ctrl->parklens_ctrl.parklens_state),
+		PARKLENS_INVALID);
+	o_ctrl->parklens_ctrl.parklens_thread = NULL;
 	mutex_init(&(o_ctrl->ois_mutex));
 	rc = cam_ois_driver_soc_init(o_ctrl);
 	if (rc) {
@@ -388,7 +439,15 @@ static int cam_ois_component_bind(struct device *dev,
 		CAM_ERR(CAM_OIS, "failed: to update i2c info rc %d", rc);
 		goto unreg_subdev;
 	}
+
+	o_ctrl->bridge_intf.ops.get_dev_info = cam_ois_publish_dev_info;
+	o_ctrl->bridge_intf.ops.link_setup = cam_ois_establish_link;
+	o_ctrl->bridge_intf.ops.apply_req = cam_ois_apply_request;
+	o_ctrl->bridge_intf.ops.flush_req = cam_ois_flush_request;
+	o_ctrl->bridge_intf.ops.do_frame_skip = cam_ois_do_frame_skip;
 	o_ctrl->bridge_intf.device_hdl = -1;
+	o_ctrl->bridge_intf.link_hdl = -1;
+	o_ctrl->bridge_intf.session_hdl = -1;
 
 	platform_set_drvdata(pdev, o_ctrl);
 	o_ctrl->cam_ois_state = CAM_OIS_INIT;
@@ -401,6 +460,7 @@ static int cam_ois_component_bind(struct device *dev,
 unreg_subdev:
 	cam_unregister_subdev(&(o_ctrl->v4l2_dev_str));
 free_soc:
+	kfree(o_ctrl->i2c_data.per_frame);
 	kfree(soc_private);
 free_cci_client:
 	kfree(o_ctrl->io_master_info.cci_client);
@@ -445,6 +505,7 @@ static void cam_ois_component_unbind(struct device *dev,
 	power_info = &soc_private->power_info;
 
 	kfree(o_ctrl->soc_info.soc_private);
+	kfree(o_ctrl->i2c_data.per_frame);
 	kfree(o_ctrl->io_master_info.cci_client);
 	platform_set_drvdata(pdev, NULL);
 	v4l2_set_subdevdata(&o_ctrl->v4l2_dev_str.sd, NULL);

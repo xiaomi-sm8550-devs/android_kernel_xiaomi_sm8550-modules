@@ -15,6 +15,52 @@
 #define CSIPHY_DEBUGFS_NAME_MAX_SIZE 10
 static struct dentry *root_dentry;
 
+static int cam_csiphy_publish_dev_info(struct cam_req_mgr_device_info *info)
+{
+	if (!info)
+		return -EINVAL;
+
+	info->dev_id = CAM_REQ_MGR_DEVICE_CUSTOM_HW;
+	strscpy(info->name, CAM_CSIPHY_NAME, sizeof(info->name));
+	info->p_delay = CAM_PIPELINE_DELAY_0;
+	info->m_delay = CAM_MODESWITCH_DELAY_0;
+	info->trigger = CAM_TRIGGER_POINT_SOF;
+
+	return 0;
+}
+
+static int cam_csiphy_establish_link(
+	struct cam_req_mgr_core_dev_link_setup *link)
+{
+	struct csiphy_device *csiphy_dev;
+
+	if (!link)
+		return -EINVAL;
+
+	csiphy_dev = cam_get_device_priv(link->dev_hdl);
+	if (!csiphy_dev)
+		return -EINVAL;
+
+	csiphy_dev->crm_cb = link->crm_cb;
+	return 0;
+}
+
+static int cam_csiphy_apply_request(struct cam_req_mgr_apply_request *apply)
+{
+	if (!apply)
+		return -EINVAL;
+
+	return 0;
+}
+
+static int cam_csiphy_flush_request(struct cam_req_mgr_flush_request *flush)
+{
+	if (!flush)
+		return -EINVAL;
+
+	return 0;
+}
+
 static inline void cam_csiphy_trigger_reg_dump(struct csiphy_device *csiphy_dev)
 {
 	cam_csiphy_common_status_reg_dump(csiphy_dev);
@@ -430,9 +476,10 @@ static int cam_csiphy_component_bind(struct device *dev,
 		new_csiphy_dev->csiphy_info[i].mipi_flags = 0;
 	}
 
-	new_csiphy_dev->ops.get_dev_info = NULL;
-	new_csiphy_dev->ops.link_setup = NULL;
-	new_csiphy_dev->ops.apply_req = NULL;
+	new_csiphy_dev->ops.get_dev_info = cam_csiphy_publish_dev_info;
+	new_csiphy_dev->ops.link_setup = cam_csiphy_establish_link;
+	new_csiphy_dev->ops.apply_req = cam_csiphy_apply_request;
+	new_csiphy_dev->ops.flush_req = cam_csiphy_flush_request;
 
 	new_csiphy_dev->acquire_count = 0;
 	new_csiphy_dev->start_dev_count = 0;

@@ -193,8 +193,8 @@ int32_t cam_cci_i2c_poll(struct cam_sensor_cci_client *client,
 	int32_t rc = -EINVAL;
 	int32_t i = 0;
 
-	CAM_DBG(CAM_SENSOR, "addr: 0x%x data: 0x%x dt: %d",
-		addr, data, data_type);
+	CAM_DBG(CAM_SENSOR, "addr: 0x%x data: 0x%x dt: %d delay_ms %d",
+		addr, data, data_type, delay_ms);
 
 	if (delay_ms > MAX_POLL_DELAY_MS) {
 		CAM_ERR(CAM_SENSOR, "invalid delay = %d max_delay = %d",
@@ -207,15 +207,24 @@ int32_t cam_cci_i2c_poll(struct cam_sensor_cci_client *client,
 		if (!rc)
 			return rc;
 
+		if (rc < 0) {
+			CAM_ERR(CAM_SENSOR,
+				"rc %d, addr: 0x%x data: 0x%x dt: %d delay_ms %d",
+				rc, addr, data, data_type, delay_ms);
+			break;
+		}
+
 		usleep_range(1000, 1010);
 	}
 
 	/* If rc is 1 then read is successful but poll is failure */
 	if (rc == 1)
-		CAM_ERR(CAM_SENSOR, "poll failed rc=%d(non-fatal)",	rc);
+		CAM_ERR(CAM_SENSOR, "poll failed rc=%d(non-fatal) delay_ms %d",
+			rc, delay_ms);
 
 	if (rc < 0)
-		CAM_ERR(CAM_SENSOR, "poll failed rc=%d", rc);
+		CAM_ERR(CAM_SENSOR, "poll failed rc=%d delay_ms %d",
+			rc, delay_ms);
 
 	return rc;
 }

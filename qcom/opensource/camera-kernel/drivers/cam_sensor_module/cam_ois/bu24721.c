@@ -11,6 +11,10 @@
 
 #define  A1 1
 #define  A2 2
+#define  A3 4
+#define  B1 3
+#define  B2 5
+#define  C2 7
 
 int bu24721_ois_pkt_download(struct cam_ois_ctrl_t *o_ctrl)
 {
@@ -24,9 +28,9 @@ int bu24721_ois_pkt_download(struct cam_ois_ctrl_t *o_ctrl)
 	const char                         *fw_name_prog = NULL;
 	const char                         *fw_name_coeff = NULL;
 	const char                         *fw_name_mem = NULL;
-	char                               name_prog[32] = {0};
-	char                               name_coeff[32] = {0};
-	char                               name_mem[32] = {0};
+	char                               name_prog[64] = {0};
+	char                               name_coeff[64] = {0};
+	char                               name_mem[64] = {0};
 	struct device                      *dev = &(o_ctrl->pdev->dev);
 	struct cam_sensor_i2c_reg_setting  i2c_reg_setting;
 	void                               *vaddr = NULL;
@@ -48,6 +52,12 @@ int bu24721_ois_pkt_download(struct cam_ois_ctrl_t *o_ctrl)
 	cam_cci_i2c_poll(ois_cci_client, F024_SETTING.reg_addr, F024_SETTING.reg_data,
 				F024_SETTING.data_mask, CAMERA_SENSOR_I2C_TYPE_BYTE,
 				CAMERA_SENSOR_I2C_TYPE_WORD, F024_SETTING.delay);
+	cam_cci_i2c_write_table(&(o_ctrl->io_master_info), &F097_write);
+	cam_cci_i2c_write_table(&(o_ctrl->io_master_info), &F058_write);
+	cam_cci_i2c_write_table(&(o_ctrl->io_master_info), &F050_write);
+	cam_cci_i2c_poll(ois_cci_client, F024_SETTING.reg_addr, F024_SETTING.reg_data,
+				F024_SETTING.data_mask, CAMERA_SENSOR_I2C_TYPE_BYTE,
+				CAMERA_SENSOR_I2C_TYPE_WORD, F024_SETTING.delay);
 
 	cam_cci_i2c_read(ois_cci_client, F01C_SETTING.reg_addr, &reg_data,
 			CAMERA_SENSOR_I2C_TYPE_WORD, CAMERA_SENSOR_I2C_TYPE_DWORD, TRUE);
@@ -55,10 +65,18 @@ int bu24721_ois_pkt_download(struct cam_ois_ctrl_t *o_ctrl)
 	cam_cci_i2c_poll(ois_cci_client, F024_SETTING.reg_addr, F024_SETTING.reg_data,
 				F024_SETTING.data_mask, CAMERA_SENSOR_I2C_TYPE_BYTE,
 				CAMERA_SENSOR_I2C_TYPE_WORD, F024_SETTING.delay);
-	if(A1 == o_ctrl->opcode.customized_ois_flag) {
+	if (o_ctrl->opcode.fw_version) {
+		F01C_SETTING.reg_data = o_ctrl->opcode.fw_version;
+	} else if (A1 == o_ctrl->opcode.customized_ois_flag) {
 		F01C_SETTING.reg_data = A1_OIS_FW;
 	} else if (A2 == o_ctrl->opcode.customized_ois_flag) {
 		F01C_SETTING.reg_data = A2_OIS_FW;
+	} else if (A3 == o_ctrl->opcode.customized_ois_flag) {
+		F01C_SETTING.reg_data = A3_OIS_FW;
+	} else if (B1 == o_ctrl->opcode.customized_ois_flag) {
+		F01C_SETTING.reg_data = B1_OIS_FW;
+	} else if (C2 == o_ctrl->opcode.customized_ois_flag) {
+		F01C_SETTING.reg_data = C2_OIS_FW;
 	}
 	CAM_DBG(CAM_OIS, "[BU24721]  read addr 0x%04x  version 0x%04x, flag %d", F01C_SETTING.reg_data,
 		reg_data, o_ctrl->opcode.customized_ois_flag);
@@ -86,11 +104,11 @@ int bu24721_ois_pkt_download(struct cam_ois_ctrl_t *o_ctrl)
 				CAM_DBG(CAM_OIS, "[bu24721] OIS program Flash settings success");
 			}
 		}
-		snprintf(name_coeff, 32, "%s.coeff", o_ctrl->ois_name);
+		snprintf(name_coeff, 64, "%s.coeff", o_ctrl->ois_name);
 
-		snprintf(name_prog, 32, "%s.prog", o_ctrl->ois_name);
+		snprintf(name_prog, 64, "%s.prog", o_ctrl->ois_name);
 
-		snprintf(name_mem, 32, "%s.mem", o_ctrl->ois_name);
+		snprintf(name_mem, 64, "%s.mem", o_ctrl->ois_name);
 
 		/* cast pointer as const pointer*/
 		fw_name_prog = name_prog;

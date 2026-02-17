@@ -382,6 +382,62 @@ static int32_t cam_eeprom_get_dev_handle(struct cam_eeprom_ctrl_t *e_ctrl,
 	return 0;
 }
 
+int32_t cam_eeprom_publish_dev_info(struct cam_req_mgr_device_info *info)
+{
+	if (!info)
+		return -EINVAL;
+
+	info->dev_id = CAM_REQ_MGR_DEVICE_CUSTOM_HW;
+	strlcpy(info->name, CAM_EEPROM_NAME, sizeof(info->name));
+	info->p_delay = CAM_PIPELINE_DELAY_0;
+	info->m_delay = CAM_MODESWITCH_DELAY_0;
+	info->trigger = CAM_TRIGGER_POINT_SOF;
+
+	return 0;
+}
+
+int32_t cam_eeprom_establish_link(struct cam_req_mgr_core_dev_link_setup *link)
+{
+	struct cam_eeprom_ctrl_t *e_ctrl = NULL;
+
+	if (!link)
+		return -EINVAL;
+
+	e_ctrl = (struct cam_eeprom_ctrl_t *)cam_get_device_priv(link->dev_hdl);
+	if (!e_ctrl) {
+		CAM_ERR(CAM_EEPROM, "Device data is NULL");
+		return -EINVAL;
+	}
+
+	mutex_lock(&e_ctrl->eeprom_mutex);
+	if (link->link_enable) {
+		e_ctrl->bridge_intf.link_hdl = link->link_hdl;
+		e_ctrl->bridge_intf.crm_cb = link->crm_cb;
+	} else {
+		e_ctrl->bridge_intf.link_hdl = -1;
+		e_ctrl->bridge_intf.crm_cb = NULL;
+	}
+	mutex_unlock(&e_ctrl->eeprom_mutex);
+
+	return 0;
+}
+
+int32_t cam_eeprom_apply_request(struct cam_req_mgr_apply_request *apply)
+{
+	if (!apply)
+		return -EINVAL;
+
+	return 0;
+}
+
+int32_t cam_eeprom_flush_request(struct cam_req_mgr_flush_request *flush_req)
+{
+	if (!flush_req)
+		return -EINVAL;
+
+	return 0;
+}
+
 /**
  * cam_eeprom_update_slaveInfo - Update slave info
  * @e_ctrl:     ctrl structure

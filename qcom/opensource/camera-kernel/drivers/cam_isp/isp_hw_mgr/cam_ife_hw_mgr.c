@@ -9531,6 +9531,131 @@ static int cam_isp_blob_ife_rdi_lcr_config(
 	return rc;
 }
 
+static bool cam_ife_hw_mgr_has_ife_src_res(
+	struct cam_ife_hw_mgr_ctx *ctx, uint32_t res_id)
+{
+	struct cam_isp_hw_mgr_res *hw_mgr_res;
+
+	list_for_each_entry(hw_mgr_res, &ctx->res_list_ife_src, list) {
+		if (hw_mgr_res->res_type == CAM_ISP_RESOURCE_UNINT)
+			continue;
+
+		if (hw_mgr_res->res_id == res_id)
+			return true;
+	}
+
+	return false;
+}
+
+static bool cam_ife_hw_mgr_has_csid_res(
+	struct cam_ife_hw_mgr_ctx *ctx, uint32_t res_id)
+{
+	struct cam_isp_hw_mgr_res *hw_mgr_res;
+
+	list_for_each_entry(hw_mgr_res, &ctx->res_list_ife_csid, list) {
+		if (hw_mgr_res->res_type == CAM_ISP_RESOURCE_UNINT)
+			continue;
+
+		if (hw_mgr_res->res_id == res_id)
+			return true;
+	}
+
+	return false;
+}
+
+static bool cam_ife_hw_mgr_has_ife_out_res(
+	struct cam_ife_hw_mgr_ctx *ctx, uint32_t res_id)
+{
+	struct cam_isp_hw_mgr_res *hw_mgr_res;
+	uint32_t index = res_id & 0xFF;
+
+	if (!cam_ife_hw_mgr_is_ife_out_port(res_id) || index >= max_ife_out_res)
+		return false;
+
+	hw_mgr_res = &ctx->res_list_ife_out[index];
+	if (hw_mgr_res->res_type == CAM_ISP_RESOURCE_UNINT)
+		return false;
+
+	return hw_mgr_res->hw_res[0] != NULL;
+}
+
+static uint32_t cam_ife_hw_mgr_choose_default_lcr_res(
+	struct cam_ife_hw_mgr_ctx *ctx)
+{
+	static const struct {
+		uint32_t csid_res;
+		uint32_t out_res;
+	} rdi_lcr_candidates[] = {
+		{ CAM_IFE_PIX_PATH_RES_RDI_1, CAM_ISP_IFE_OUT_RES_RDI_1 },
+		{ CAM_IFE_PIX_PATH_RES_RDI_2, CAM_ISP_IFE_OUT_RES_RDI_2 },
+		{ CAM_IFE_PIX_PATH_RES_RDI_0, CAM_ISP_IFE_OUT_RES_RDI_0 },
+	};
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(rdi_lcr_candidates); i++) {
+		if (!cam_ife_hw_mgr_has_csid_res(ctx,
+			rdi_lcr_candidates[i].csid_res))
+			continue;
+
+		if (cam_ife_hw_mgr_has_ife_out_res(ctx,
+			rdi_lcr_candidates[i].out_res)) {
+			CAM_DBG(CAM_ISP,
+				"Skip default RDI LCR ctx %d res 0x%x: real output acquired",
+				ctx->ctx_index, rdi_lcr_candidates[i].out_res);
+			continue;
+		}
+
+		return rdi_lcr_candidates[i].out_res;
+	}
+
+	return 0;
+}
+
+static int cam_ife_hw_mgr_apply_default_rdi_lcr(
+	struct cam_ife_hw_mgr_ctx               *ctx,
+	struct cam_hw_prepare_update_args       *prepare,
+	struct cam_isp_prepare_hw_update_data   *prepare_hw_data,
+	struct cam_isp_ctx_base_info            *base_info)
+{
+	struct cam_isp_generic_blob_info blob_info = {0};
+	struct cam_isp_lcr_rdi_config lcr_cfg = {0};
+	int rc;
+
+	if (prepare_hw_data->packet_opcode_type != CAM_ISP_PACKET_INIT_DEV)
+		return 0;
+
+	if (ctx->ctx_type == CAM_IFE_CTX_TYPE_SFE || ctx->flags.rdi_lcr_en)
+		return 0;
+
+	if (!cam_ife_hw_mgr_has_ife_src_res(ctx, CAM_ISP_HW_VFE_IN_PDLIB))
+		return 0;
+
+	lcr_cfg.res_id = cam_ife_hw_mgr_choose_default_lcr_res(ctx);
+	if (!lcr_cfg.res_id) {
+		CAM_DBG(CAM_ISP,
+			"No free RDI path for default LCR cfg ctx %d base %u",
+			ctx->ctx_index, base_info->idx);
+		return 0;
+	}
+
+	blob_info.prepare = prepare;
+	blob_info.base_info = base_info;
+	blob_info.kmd_buf_info = &prepare_hw_data->kmd_cmd_buff_info;
+
+	CAM_WARN(CAM_ISP,
+		"Apply default RDI LCR cfg ctx %d base %u res 0x%x",
+		ctx->ctx_index, base_info->idx, lcr_cfg.res_id);
+
+	rc = cam_isp_blob_ife_rdi_lcr_config(ctx, prepare, &blob_info,
+		&lcr_cfg, CAM_ISP_GENERIC_BLOB_TYPE_RDI_LCR_CONFIG);
+	if (rc)
+		CAM_ERR(CAM_ISP,
+			"Default RDI LCR cfg failed ctx %d base %u rc %d",
+			ctx->ctx_index, base_info->idx, rc);
+
+	return rc;
+}
+
 static inline int cam_isp_validate_bw_limiter_blob(
 	uint32_t blob_size,
 	struct cam_isp_out_rsrc_bw_limiter_config *bw_limit_config)
@@ -11696,6 +11821,13 @@ static int cam_ife_mgr_prepare_hw_update(void *hw_mgr_priv,
 			CAM_ERR(CAM_ISP, "Add cmd buffer failed base_idx: %d hw_type %d",
 				i, ctx->base[i].hw_type);
 			goto end;
+		}
+
+		if (ctx->base[i].hw_type == CAM_ISP_HW_TYPE_VFE) {
+			rc = cam_ife_hw_mgr_apply_default_rdi_lcr(ctx, prepare,
+				prepare_hw_data, &ctx->base[i]);
+			if (rc)
+				goto end;
 		}
 
 		/* get IO buffers */

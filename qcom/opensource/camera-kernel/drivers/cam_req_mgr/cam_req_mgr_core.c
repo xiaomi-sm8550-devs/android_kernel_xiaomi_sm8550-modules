@@ -8,6 +8,7 @@
 #include <linux/of_platform.h>
 #include <linux/slab.h>
 #include <linux/mutex.h>
+#include <linux/delay.h>
 #include "cam_req_mgr_interface.h"
 #include "cam_req_mgr_util.h"
 #include "cam_req_mgr_core.h"
@@ -2229,7 +2230,41 @@ static int __cam_req_mgr_process_req(struct cam_req_mgr_core_link *link,
 		}
 	}
 
-	rc = __cam_req_mgr_send_req(link, link->req.in_q, trigger, &dev);
+	if (!trigger_data->process_rdi_mismatch) {
+		if ((in_q->slot[in_q->rd_idx].req_id ==
+			(trigger_data->request_mismatched + 1)) ||
+			((in_q->slot[in_q->rd_idx].req_id < 0) &&
+			(trigger_data->request_mismatched >= 0))) {
+			CAM_DBG(CAM_REQ,
+				"RDI mismatch retry++, link_hdl %x Req[%lld] idx %d, rdi_mismatch_retry %d",
+				link->link_hdl, in_q->slot[in_q->rd_idx].req_id,
+				in_q->rd_idx, link->rdi_mismatch_retry);
+
+			trigger_data->request_mismatched = -2;
+			trigger_data->ctx_mismatched = -2;
+
+			usleep_range(3000, 5000);
+
+			if (link->rdi_mismatch_retry >= 1) {
+				msleep(10 * link->rdi_mismatch_retry);
+				if (link->rdi_mismatch_retry > 10)
+					link->rdi_mismatch_retry = 0;
+			}
+
+			link->print_on = true;
+			link->rdi_mismatch_retry++;
+		} else {
+			link->print_on = false;
+			link->rdi_mismatch_retry = 0;
+		}
+
+		rc = __cam_req_mgr_send_req(link, link->req.in_q, trigger, &dev);
+	} else {
+		CAM_DBG(CAM_REQ,
+			"Process RDI mismatch, link_hdl %x Req[%lld] idx %d skip apply",
+			link->link_hdl, in_q->slot[in_q->rd_idx].req_id,
+			in_q->rd_idx);
+	}
 	if (rc < 0) {
 		/* Apply req failed retry at next sof */
 		slot->status = CRM_SLOT_STATUS_REQ_PENDING;
@@ -2300,9 +2335,10 @@ static int __cam_req_mgr_process_req(struct cam_req_mgr_core_link *link,
 		 * 2# eof trigger is applied and the devcies which need to
 		 * be applied at SOF are also applied.
 		 */
-		if (((eof_trigger_type == CAM_REQ_EOF_TRIGGER_NONE) ||
+		if ((((eof_trigger_type == CAM_REQ_EOF_TRIGGER_NONE) ||
 			(eof_trigger_type == CAM_REQ_EOF_TRIGGER_APPLIED)) &&
-			(trigger == CAM_TRIGGER_POINT_SOF)) {
+			(trigger == CAM_TRIGGER_POINT_SOF)) &&
+			!trigger_data->process_rdi_mismatch) {
 			slot->status = CRM_SLOT_STATUS_REQ_APPLIED;
 
 			CAM_DBG(CAM_CRM, "req %d is applied on link %x",
@@ -3452,7 +3488,7 @@ void __cam_req_mgr_apply_on_bubble(
 	struct cam_req_mgr_error_notify *err_info)
 {
 	int rc = 0;
-	struct cam_req_mgr_trigger_notify trigger_data;
+	struct cam_req_mgr_trigger_notify trigger_data = {0};
 
 	trigger_data.dev_hdl = err_info->dev_hdl;
 	trigger_data.frame_id = err_info->frame_id;
@@ -3662,6 +3698,8 @@ static int cam_req_mgr_process_trigger(void *priv, void *data)
 	struct crm_task_payload             *task_data = NULL;
 	int                                  reset_step = 0;
 	int                                  i = 0;
+	struct cam_req_mgr_connected_device *dev = NULL;
+	int                                  do_frame_skip = 0;
 
 	if (!data || !priv) {
 		CAM_ERR(CAM_CRM, "input args NULL %pK %pK", data, priv);
@@ -3673,10 +3711,14 @@ static int cam_req_mgr_process_trigger(void *priv, void *data)
 	task_data = (struct crm_task_payload *)data;
 	trigger_data = (struct cam_req_mgr_trigger_notify *)&task_data->u;
 
-	CAM_DBG(CAM_REQ, "link_hdl %x frame_id %lld, trigger %x\n",
+	CAM_DBG(CAM_REQ,
+		"link_hdl %x frame_id %lld, trigger %x process_rdi_mismatch %d request_mismatched %lld ctx_mismatched %d\n",
 		trigger_data->link_hdl,
 		trigger_data->frame_id,
-		trigger_data->trigger);
+		trigger_data->trigger,
+		trigger_data->process_rdi_mismatch,
+		trigger_data->request_mismatched,
+		trigger_data->ctx_mismatched);
 
 	in_q = link->req.in_q;
 
@@ -3741,7 +3783,8 @@ static int cam_req_mgr_process_trigger(void *priv, void *data)
 	 * Move to next req at SOF only in case
 	 * the rd_idx is updated at EOF.
 	 */
-	if (in_q->slot[in_q->rd_idx].status == CRM_SLOT_STATUS_REQ_APPLIED) {
+	if ((in_q->slot[in_q->rd_idx].status == CRM_SLOT_STATUS_REQ_APPLIED) &&
+		!trigger_data->process_rdi_mismatch) {
 		/*
 		 * Do NOT reset req q slot data here, it can not be done
 		 * here because we need to preserve the data to handle bubble.
@@ -3751,13 +3794,35 @@ static int cam_req_mgr_process_trigger(void *priv, void *data)
 		 */
 		CAM_DBG(CAM_CRM, "link[%x] Req[%lld] invalidating slot",
 			link->link_hdl, in_q->slot[in_q->rd_idx].req_id);
-		rc = __cam_req_mgr_move_to_next_req_slot(link);
-		if (rc) {
-			CAM_DBG(CAM_REQ,
-				"No pending req to apply to lower pd devices");
+		for (i = 0; i < link->num_devs; i++) {
+			dev = &link->l_dev[i];
+			if (!dev || !dev->ops || !dev->ops->do_frame_skip)
+				continue;
+
+			if (dev->ops->do_frame_skip(
+				in_q->slot[in_q->rd_idx].req_id, dev->dev_hdl))
+				++do_frame_skip;
+		}
+
+		if (do_frame_skip) {
 			rc = 0;
+			CAM_INFO(CAM_CRM,
+				"[SkipFrame] dev name: %s trigger skip frame, Req[%lld]",
+				dev->dev_info.name,
+				in_q->slot[in_q->rd_idx].req_id);
 			__cam_req_mgr_notify_frame_skip(link, trigger_data->trigger);
 			goto release_lock;
+		}
+
+		if (trigger_data->trigger == CAM_TRIGGER_POINT_SOF) {
+			rc = __cam_req_mgr_move_to_next_req_slot(link);
+			if (rc) {
+				CAM_DBG(CAM_REQ,
+					"No pending req to apply to lower pd devices");
+				rc = 0;
+				__cam_req_mgr_notify_frame_skip(link, trigger_data->trigger);
+				goto release_lock;
+			}
 		}
 	}
 
@@ -4185,6 +4250,12 @@ static int cam_req_mgr_cb_notify_trigger(
 	notify_trigger->trigger = trigger_data->trigger;
 	notify_trigger->req_id = trigger_data->req_id;
 	notify_trigger->sof_timestamp_val = trigger_data->sof_timestamp_val;
+	notify_trigger->trigger_id = trigger_data->trigger_id;
+	notify_trigger->process_rdi_mismatch =
+		trigger_data->process_rdi_mismatch;
+	notify_trigger->request_mismatched =
+		trigger_data->request_mismatched;
+	notify_trigger->ctx_mismatched = trigger_data->ctx_mismatched;
 	task->process_cb = &cam_req_mgr_process_trigger;
 	rc = cam_req_mgr_workq_enqueue_task(task, link, CRM_TASK_PRIORITY_0);
 

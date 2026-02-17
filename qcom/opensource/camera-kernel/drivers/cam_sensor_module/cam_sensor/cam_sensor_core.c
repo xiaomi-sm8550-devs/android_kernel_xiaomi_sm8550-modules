@@ -174,6 +174,37 @@ static int cam_sensor_handle_res_info(struct cam_sensor_res_info *res_info,
 
 	idx = s_ctrl->last_updated_req % MAX_PER_FRAME_ARRAY;
 
+#if defined(CONFIG_TARGET_PRODUCT_ISHTAR)
+	if (!res_info->width || !res_info->height) {
+		uint32_t prev_idx = (s_ctrl->last_updated_req ?
+			(s_ctrl->last_updated_req - 1) : 0) % MAX_PER_FRAME_ARRAY;
+
+		if (s_ctrl->sensor_res[prev_idx].width &&
+			s_ctrl->sensor_res[prev_idx].height) {
+			CAM_WARN(CAM_SENSOR,
+				"Use previous ishtar res info for invalid %ux%u req %lu prev %ux%u",
+				res_info->width, res_info->height,
+				s_ctrl->last_updated_req,
+				s_ctrl->sensor_res[prev_idx].width,
+				s_ctrl->sensor_res[prev_idx].height);
+			s_ctrl->sensor_res[idx] = s_ctrl->sensor_res[prev_idx];
+			s_ctrl->sensor_res[idx].request_id = s_ctrl->last_updated_req;
+			s_ctrl->sensor_res[idx].res_index = res_info->res_index;
+			s_ctrl->is_res_info_updated = true;
+			return 0;
+		}
+
+		CAM_WARN(CAM_SENSOR,
+			"Fallback ishtar invalid res info %ux%u req %lu to 4096x3072",
+			res_info->width, res_info->height,
+			s_ctrl->last_updated_req);
+		res_info->width = 4096;
+		res_info->height = 3072;
+		if (!res_info->fps)
+			res_info->fps = 30;
+	}
+#endif
+
 	s_ctrl->sensor_res[idx].res_index = res_info->res_index;
 	strscpy(s_ctrl->sensor_res[idx].caps, res_info->caps,
 		sizeof(s_ctrl->sensor_res[idx].caps));
@@ -421,6 +452,22 @@ static int32_t cam_sensor_pkt_parse(struct cam_sensor_ctrl_t *s_ctrl,
 			csl_packet->header.request_id);
 		break;
 	}
+	case CAM_SENSOR_PACKET_OPCODE_SENSOR_WRITE: {
+		if ((s_ctrl->sensor_state == CAM_SENSOR_INIT) ||
+			(s_ctrl->sensor_state == CAM_SENSOR_ACQUIRE)) {
+			rc = -EINVAL;
+			CAM_WARN(CAM_SENSOR,
+				"Not in right state to write sensor: %d",
+				s_ctrl->sensor_state);
+			goto end;
+		}
+
+		CAM_DBG(CAM_SENSOR, "Received write buffer");
+		i2c_reg_settings = &i2c_data->write_settings;
+		i2c_reg_settings->request_id = 0;
+		i2c_reg_settings->is_settings_valid = 1;
+		break;
+	}
 	case CAM_SENSOR_PACKET_OPCODE_SENSOR_BUBBLE_UPDATE: {
 		if ((s_ctrl->sensor_state == CAM_SENSOR_INIT) ||
 			(s_ctrl->sensor_state == CAM_SENSOR_ACQUIRE)) {
@@ -514,6 +561,22 @@ static int32_t cam_sensor_pkt_parse(struct cam_sensor_ctrl_t *s_ctrl,
 			s_ctrl->sensor_res[idx].request_id = 0;
 
 		break;
+	}
+
+	if ((csl_packet->header.op_code & 0xFFFFFF) ==
+		CAM_SENSOR_PACKET_OPCODE_SENSOR_WRITE) {
+		rc = cam_sensor_apply_settings(s_ctrl, 0,
+			CAM_SENSOR_PACKET_OPCODE_SENSOR_WRITE);
+		s_ctrl->i2c_data.write_settings.request_id = -1;
+
+		if (rc < 0)
+			CAM_ERR(CAM_SENSOR, "Cannot apply write settings");
+
+		if (delete_request(&s_ctrl->i2c_data.write_settings) < 0)
+			CAM_WARN(CAM_SENSOR,
+				"Fail in deleting the write settings");
+
+		goto end;
 	}
 
 	/*
@@ -1294,7 +1357,13 @@ int32_t cam_sensor_driver_cmd(struct cam_sensor_ctrl_t *s_ctrl,
 			goto release_mutex;
 		}
 
+		lock_power_sync_mutex(
+			s_ctrl->io_master_info.cci_client->cci_device,
+			s_ctrl->cci_i2c_master);
 		rc = cam_sensor_power_up(s_ctrl);
+		unlock_power_sync_mutex(
+			s_ctrl->io_master_info.cci_client->cci_device,
+			s_ctrl->cci_i2c_master);
 		if (rc < 0) {
 			CAM_ERR(CAM_SENSOR,
 				"Sensor Power up failed for %s sensor_id:0x%x, slave_addr:0x%x",
@@ -1616,6 +1685,14 @@ int cam_sensor_publish_dev_info(struct cam_req_mgr_device_info *info)
 		info->p_delay = CAM_PIPELINE_DELAY_2;
 		info->m_delay = CAM_MODESWITCH_DELAY_2;
 	}
+#if defined(CONFIG_TARGET_PRODUCT_ISHTAR)
+	if (info->p_delay > CAM_PIPELINE_DELAY_1) {
+		CAM_INFO(CAM_REQ,
+			"Clamp ishtar sensor pipeline delay %d to %d",
+			info->p_delay, CAM_PIPELINE_DELAY_1);
+		info->p_delay = CAM_PIPELINE_DELAY_1;
+	}
+#endif
 	info->trigger = CAM_TRIGGER_POINT_SOF;
 
 	CAM_DBG(CAM_REQ, "num batched frames %d p_delay is %d",
@@ -1830,6 +1907,10 @@ int cam_sensor_apply_settings(struct cam_sensor_ctrl_t *s_ctrl,
 		}
 		case CAM_SENSOR_PACKET_OPCODE_SENSOR_REG_BANK_LOCK: {
 			i2c_set = &s_ctrl->i2c_data.reg_bank_lock_settings;
+			break;
+		}
+		case CAM_SENSOR_PACKET_OPCODE_SENSOR_WRITE: {
+			i2c_set = &s_ctrl->i2c_data.write_settings;
 			break;
 		}
 		case CAM_SENSOR_PACKET_OPCODE_SENSOR_UPDATE:

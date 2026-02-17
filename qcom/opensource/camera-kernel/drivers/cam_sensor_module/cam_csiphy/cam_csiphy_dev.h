@@ -352,6 +352,7 @@ struct cam_csiphy_param {
 	struct csiphy_hdl_tbl            hdl_data;
 	struct cam_csiphy_tz_secure_info secure_info;
 	bool                             secure_info_updated;
+	bool                             is_modify_onthego;
 };
 
 struct csiphy_work_queue {

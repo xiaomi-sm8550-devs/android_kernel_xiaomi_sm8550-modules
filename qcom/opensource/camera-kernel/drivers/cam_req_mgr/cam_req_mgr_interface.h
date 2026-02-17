@@ -60,6 +60,8 @@ typedef int (*cam_req_mgr_notify_frame_skip)(
 typedef int (*cam_req_mgr_flush_req)(struct cam_req_mgr_flush_request *);
 typedef int (*cam_req_mgr_process_evt)(struct cam_req_mgr_link_evt_data *);
 typedef int (*cam_req_mgr_dump_req)(struct cam_req_mgr_dump_info *);
+typedef bool (*cam_req_mgr_do_frame_skip)(int64_t req_id,
+	int32_t dev_hdl);
 
 /**
  * @brief          : cam_req_mgr_crm_cb - func table
@@ -97,6 +99,7 @@ struct cam_req_mgr_kmd_ops {
 	cam_req_mgr_flush_req         flush_req;
 	cam_req_mgr_process_evt       process_evt;
 	cam_req_mgr_dump_req          dump_req;
+	cam_req_mgr_do_frame_skip     do_frame_skip;
 };
 
 /**
@@ -267,6 +270,9 @@ struct cam_req_mgr_trigger_notify {
 	uint64_t sof_timestamp_val;
 	uint64_t req_id;
 	int32_t  trigger_id;
+	bool     process_rdi_mismatch;
+	int64_t  request_mismatched;
+	int32_t  ctx_mismatched;
 };
 
 /**

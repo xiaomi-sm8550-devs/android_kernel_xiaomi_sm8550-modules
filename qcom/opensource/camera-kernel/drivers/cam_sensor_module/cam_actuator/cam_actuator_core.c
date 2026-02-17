@@ -877,6 +877,50 @@ int32_t cam_actuator_i2c_pkt_parse(struct cam_actuator_ctrl_t *a_ctrl,
 
 		break;
 	}
+	case CAM_ACTUATOR_PACKET_OPCODE_WRITE: {
+		if (a_ctrl->cam_act_state < CAM_ACTUATOR_CONFIG) {
+			rc = -EINVAL;
+			CAM_WARN(CAM_ACTUATOR,
+				"Not in right state to write actuator: %d",
+				a_ctrl->cam_act_state);
+			goto end;
+		}
+		CAM_DBG(CAM_ACTUATOR, "Received write buffer");
+
+		i2c_data = &(a_ctrl->i2c_data);
+		i2c_reg_settings = &i2c_data->write_settings;
+
+		i2c_data->write_settings.request_id = 0;
+		i2c_reg_settings->is_settings_valid = 1;
+		offset = (uint32_t *)&csl_packet->payload;
+		offset += csl_packet->cmd_buf_offset / sizeof(uint32_t);
+		cmd_desc = (struct cam_cmd_buf_desc *)(offset);
+		rc = cam_sensor_i2c_command_parser(
+				&a_ctrl->io_master_info,
+				i2c_reg_settings,
+				cmd_desc, 1, NULL);
+		if (rc < 0) {
+			CAM_ERR(CAM_ACTUATOR,
+				"write setting parsing failed: %d", rc);
+			goto end;
+		}
+
+		rc = cam_actuator_apply_settings(a_ctrl,
+			&a_ctrl->i2c_data.write_settings);
+		if (rc < 0) {
+			CAM_ERR(CAM_ACTUATOR, "Cannot apply write settings");
+			goto end;
+		}
+
+		/* Delete the request even if the apply is failed */
+		rc = delete_request(&a_ctrl->i2c_data.write_settings);
+		if (rc < 0) {
+			CAM_WARN(CAM_ACTUATOR,
+				"Fail in deleting the Init settings");
+			rc = 0;
+		}
+		break;
+	}
 	/* xiaomi add end */
 	default:
 		CAM_ERR(CAM_ACTUATOR, "Wrong Opcode: %d",

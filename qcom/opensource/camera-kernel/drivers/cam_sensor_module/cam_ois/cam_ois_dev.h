@@ -22,6 +22,8 @@
 #include <cam_subdev.h>
 #include "cam_soc_util.h"
 #include "cam_context.h"
+#include "cam_sensor_util.h"
+#include "cam_actuator_parklens_thread.h"
 
 #define DEFINE_MSM_MUTEX(mutexname) \
 	static struct mutex mutexname = __MUTEX_INITIALIZER(mutexname)
@@ -34,6 +36,17 @@ enum cam_ois_state {
 	CAM_OIS_ACQUIRE,
 	CAM_OIS_CONFIG,
 	CAM_OIS_START,
+};
+
+struct cam_ois_parklens_ctrl_t {
+	parklens_thread_t *parklens_thread;
+	parklens_wait_queue_head_t parklens_wait_queue;
+	struct parklens_event start_event;
+	struct parklens_event shutdown_event;
+	parklens_atomic_t parklens_opcode;
+	parklens_atomic_t exit_result;
+	parklens_atomic_t parklens_state;
+	struct i2c_settings_array last_setting_array;
 };
 
 /**
@@ -111,7 +124,7 @@ struct cam_ois_ctrl_t {
 	bool is_i3c_device;
 	struct cam_ois_intf_params bridge_intf;
 	struct i2c_settings_array i2c_fwinit_data;
-#if defined(CONFIG_TARGET_PRODUCT_NUWA)
+#if defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	struct i2c_settings_array i2c_postinit_data;
 #endif
 	struct i2c_settings_array i2c_init_data;
@@ -125,6 +138,10 @@ struct cam_ois_ctrl_t {
 	uint8_t is_ois_calib;
 	struct cam_ois_opcode opcode;
 	struct i2c_data_settings i2c_data;  // xiaomi add
+	uint64_t last_flush_req;
+	struct skip_frame skip_frame_queue[MAX_PER_FRAME_ARRAY];
+	bool is_second_init;
+	struct cam_ois_parklens_ctrl_t parklens_ctrl;
 };
 
 /**

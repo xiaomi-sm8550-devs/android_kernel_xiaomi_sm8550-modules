@@ -661,7 +661,7 @@ static int __cam_isp_ctx_notify_trigger_util(
 {
 	int                                rc = -EINVAL;
 	struct cam_context                *ctx = ctx_isp->base;
-	struct cam_req_mgr_trigger_notify  notify;
+	struct cam_req_mgr_trigger_notify  notify = {0};
 
 	/* Trigger type not supported, return */
 	if (!(ctx_isp->subscribe_event & trigger_type)) {
@@ -689,12 +689,17 @@ static int __cam_isp_ctx_notify_trigger_util(
 	notify.req_id = ctx_isp->req_info.last_bufdone_req_id;
 	notify.sof_timestamp_val = ctx_isp->sof_timestamp_val;
 	notify.trigger_id = ctx_isp->trigger_id;
+	notify.process_rdi_mismatch = ctx_isp->process_rdi_mismatch;
+	notify.request_mismatched = ctx_isp->request_mismatched;
+	notify.ctx_mismatched = ctx_isp->ctx_mismatched;
 
 	CAM_DBG(CAM_ISP,
-		"Notify CRM %s on frame: %llu ctx: %u link: 0x%x last_buf_done_req: %lld",
+		"Notify CRM %s on frame: %llu ctx: %u link: 0x%x last_buf_done_req: %lld process_rdi_mismatch %d request_mismatched %lld ctx_mismatched %d",
 		__cam_isp_ctx_crm_trigger_point_to_string(trigger_type),
 		ctx_isp->frame_id, ctx->ctx_id, ctx->link_hdl,
-		ctx_isp->req_info.last_bufdone_req_id);
+		ctx_isp->req_info.last_bufdone_req_id,
+		notify.process_rdi_mismatch, notify.request_mismatched,
+		notify.ctx_mismatched);
 
 	rc = ctx->ctx_crm_intf->notify_trigger(&notify);
 	if (rc)
@@ -1153,6 +1158,117 @@ static char *__cam_isp_ife_sfe_resource_handle_id_to_type(
 	}
 }
 
+static bool __cam_isp_is_deferred_mismatch_res(uint32_t resource_handle)
+{
+	switch (resource_handle) {
+	case 0x6001:
+	case CAM_ISP_IFE_OUT_RES_2PD:
+	case CAM_ISP_IFE_OUT_RES_PREPROCESS_2PD:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static bool __cam_isp_is_ignored_aux_res(uint32_t resource_handle)
+{
+	switch (resource_handle) {
+#if defined(CONFIG_TARGET_PRODUCT_ISHTAR)
+	case CAM_ISP_IFE_OUT_RES_RDI_0:
+#endif
+	case CAM_ISP_IFE_OUT_RES_2PD:
+	case CAM_ISP_IFE_OUT_RES_PREPROCESS_2PD:
+	case CAM_ISP_IFE_OUT_RES_PDAF_PARSED_DATA:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static bool __cam_isp_is_missing_aux_res(uint32_t resource_handle)
+{
+	switch (resource_handle) {
+#if defined(CONFIG_TARGET_PRODUCT_ISHTAR)
+	case CAM_ISP_IFE_OUT_RES_RDI_0:
+#endif
+	case CAM_ISP_IFE_OUT_RES_2PD:
+	case CAM_ISP_IFE_OUT_RES_PREPROCESS_2PD:
+	case CAM_ISP_IFE_OUT_RES_PDAF_PARSED_DATA:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static void __cam_isp_ctx_prune_ignored_aux_fences(
+	struct cam_isp_context *ctx_isp,
+	struct cam_ctx_request *req)
+{
+#if defined(CONFIG_TARGET_PRODUCT_ISHTAR)
+	int i, out_idx, rc;
+	bool put_ref;
+	struct cam_context *ctx = ctx_isp->base;
+	struct cam_isp_ctx_req *req_isp =
+		(struct cam_isp_ctx_req *)req->req_priv;
+
+	for (i = 0, out_idx = 0; i < req_isp->num_fence_map_out; i++) {
+		if (!__cam_isp_is_ignored_aux_res(
+			req_isp->fence_map_out[i].resource_handle)) {
+			if (out_idx != i)
+				req_isp->fence_map_out[out_idx] =
+					req_isp->fence_map_out[i];
+			out_idx++;
+			continue;
+		}
+
+		CAM_DBG(CAM_ISP,
+			"Prune ishtar aux fence req %llu res 0x%x sync 0x%x ctx %u",
+			req->request_id,
+			req_isp->fence_map_out[i].resource_handle,
+			req_isp->fence_map_out[i].sync_id,
+			ctx->ctx_id);
+
+		if (req_isp->fence_map_out[i].sync_id != -1) {
+			put_ref = false;
+			rc = cam_sync_get_obj_ref(req_isp->fence_map_out[i].sync_id);
+			if (!rc) {
+				put_ref = true;
+			} else {
+				CAM_INFO_RATE_LIMIT(CAM_ISP,
+					"Failed to get pruned aux sync ref req %llu res 0x%x sync 0x%x rc %d",
+					req->request_id,
+					req_isp->fence_map_out[i].resource_handle,
+					req_isp->fence_map_out[i].sync_id, rc);
+				continue;
+			}
+
+			rc = cam_sync_signal(req_isp->fence_map_out[i].sync_id,
+				CAM_SYNC_STATE_SIGNALED_SUCCESS,
+				CAM_SYNC_COMMON_EVENT_SUCCESS);
+			if (rc)
+				CAM_INFO_RATE_LIMIT(CAM_ISP,
+					"Failed to signal pruned aux fence req %llu res 0x%x sync 0x%x rc %d",
+					req->request_id,
+					req_isp->fence_map_out[i].resource_handle,
+					req_isp->fence_map_out[i].sync_id, rc);
+
+			if (put_ref && cam_sync_put_obj_ref(
+				req_isp->fence_map_out[i].sync_id))
+				CAM_INFO_RATE_LIMIT(CAM_ISP,
+					"Failed to put pruned aux sync ref req %llu res 0x%x sync 0x%x",
+					req->request_id,
+					req_isp->fence_map_out[i].resource_handle,
+					req_isp->fence_map_out[i].sync_id);
+		}
+	}
+
+	req_isp->num_fence_map_out = out_idx;
+#else
+	(void)ctx_isp;
+	(void)req;
+#endif
+}
+
 static const char *__cam_isp_tfe_resource_handle_id_to_type(
 	uint32_t resource_handle)
 {
@@ -1467,11 +1583,11 @@ static void __cam_isp_ctx_handle_buf_done_fail_log(
 		return;
 	}
 
-	CAM_WARN_RATE_LIMIT(CAM_ISP,
+	CAM_WARN(CAM_ISP,
 		"Prev Req[%lld] : num_out=%d, num_acked=%d, bubble : report=%d, detected=%d",
 		request_id, req_isp->num_fence_map_out, req_isp->num_acked,
 		req_isp->bubble_report, req_isp->bubble_detected);
-	CAM_WARN_RATE_LIMIT(CAM_ISP,
+	CAM_WARN(CAM_ISP,
 		"Resource Handles that fail to generate buf_done in prev frame");
 	for (i = 0; i < req_isp->num_fence_map_out; i++) {
 		if (req_isp->fence_map_out[i].sync_id != -1) {
@@ -1481,7 +1597,7 @@ static void __cam_isp_ctx_handle_buf_done_fail_log(
 			trace_cam_log_event("Buf_done Congestion",
 				handle_type, request_id, req_isp->fence_map_out[i].sync_id);
 
-			CAM_WARN_RATE_LIMIT(CAM_ISP,
+			CAM_WARN(CAM_ISP,
 				"Resource_Handle: [%s][0x%x] Sync_ID: [0x%x]",
 				handle_type,
 				req_isp->fence_map_out[i].resource_handle,
@@ -1590,7 +1706,19 @@ static int __cam_isp_ctx_handle_buf_done_for_req_list(
 	ctx_isp->active_req_cnt--;
 	buf_done_req_id = req->request_id;
 
-	if (req_isp->bubble_detected && req_isp->bubble_report) {
+	if (ctx_isp->process_rdi_mismatch &&
+		(buf_done_req_id == ctx_isp->request_mismatched) &&
+		(ctx->ctx_id == ctx_isp->ctx_mismatched)) {
+		req_isp->num_acked = 0;
+		req_isp->num_deferred_acks = 0;
+		list_del_init(&req->list);
+		req_isp->cdm_reset_before_apply = false;
+		ctx_isp->process_rdi_mismatch = false;
+		list_add(&req->list, &ctx->pending_req_list);
+		CAM_DBG(CAM_REQ,
+			"Move active request %lld to pending list(cnt = %d) [rdi mismatch], ctx %u",
+			req->request_id, ctx_isp->active_req_cnt, ctx->ctx_id);
+	} else if (req_isp->bubble_detected && req_isp->bubble_report) {
 		req_isp->num_acked = 0;
 		req_isp->num_deferred_acks = 0;
 		req_isp->bubble_detected = false;
@@ -1598,6 +1726,9 @@ static int __cam_isp_ctx_handle_buf_done_for_req_list(
 		atomic_set(&ctx_isp->process_bubble, 0);
 		req_isp->cdm_reset_before_apply = false;
 		ctx_isp->bubble_frame_cnt = 0;
+		ctx_isp->process_rdi_mismatch = false;
+		ctx_isp->request_mismatched = -3;
+		ctx_isp->ctx_mismatched = -3;
 
 		if (buf_done_req_id <= ctx->last_flush_req) {
 			for (i = 0; i < req_isp->num_fence_map_out; i++)
@@ -1662,6 +1793,74 @@ static int __cam_isp_ctx_handle_buf_done_for_req_list(
 	__cam_isp_ctx_update_event_record(ctx_isp,
 		CAM_ISP_CTX_EVENT_BUFDONE, req);
 	return rc;
+}
+
+static bool __cam_isp_ctx_only_missing_aux(
+	struct cam_isp_ctx_req *req_isp)
+{
+	int i;
+	uint32_t missing_cnt = 0;
+
+	for (i = 0; i < req_isp->num_fence_map_out; i++) {
+		if (req_isp->fence_map_out[i].sync_id == -1)
+			continue;
+
+		if (!__cam_isp_is_missing_aux_res(
+			req_isp->fence_map_out[i].resource_handle))
+			return false;
+
+		missing_cnt++;
+	}
+
+	return missing_cnt &&
+		((req_isp->num_acked + missing_cnt) ==
+		req_isp->num_fence_map_out);
+}
+
+static int __cam_isp_ctx_complete_missing_aux(
+	struct cam_isp_context *ctx_isp,
+	struct cam_ctx_request *req)
+{
+	int i, rc = 0;
+	struct cam_isp_ctx_req *req_isp =
+		(struct cam_isp_ctx_req *)req->req_priv;
+	struct cam_context *ctx = ctx_isp->base;
+
+	for (i = 0; i < req_isp->num_fence_map_out; i++) {
+		if (req_isp->fence_map_out[i].sync_id == -1)
+			continue;
+
+		if (!__cam_isp_is_missing_aux_res(
+			req_isp->fence_map_out[i].resource_handle))
+			continue;
+
+		CAM_DBG(CAM_ISP,
+			"Complete missing recoverable ack req %llu res 0x%x sync 0x%x ctx %u",
+			req->request_id,
+			req_isp->fence_map_out[i].resource_handle,
+			req_isp->fence_map_out[i].sync_id,
+			ctx->ctx_id);
+
+		rc = cam_sync_signal(req_isp->fence_map_out[i].sync_id,
+			CAM_SYNC_STATE_SIGNALED_SUCCESS,
+			CAM_SYNC_COMMON_EVENT_SUCCESS);
+		if (rc) {
+			CAM_ERR(CAM_ISP,
+				"Failed to complete recoverable sync 0x%x req %llu res 0x%x rc %d",
+				req_isp->fence_map_out[i].sync_id,
+				req->request_id,
+				req_isp->fence_map_out[i].resource_handle, rc);
+			return rc;
+		}
+
+		req_isp->fence_map_out[i].sync_id = -1;
+		req_isp->num_acked++;
+	}
+
+	if (req_isp->num_acked != req_isp->num_fence_map_out)
+		return -EAGAIN;
+
+	return __cam_isp_ctx_handle_buf_done_for_req_list(ctx_isp, req);
 }
 
 static int __cam_isp_ctx_handle_buf_done_for_request(
@@ -1819,8 +2018,12 @@ static int __cam_isp_ctx_handle_buf_done_for_request(
 		WARN_ON(req_isp->num_acked > req_isp->num_fence_map_out);
 	}
 
-	if (req_isp->num_acked != req_isp->num_fence_map_out)
+	if (req_isp->num_acked != req_isp->num_fence_map_out) {
+		if (__cam_isp_ctx_only_missing_aux(req_isp))
+			return __cam_isp_ctx_complete_missing_aux(ctx_isp, req);
+
 		return rc;
+	}
 
 	rc = __cam_isp_ctx_handle_buf_done_for_req_list(ctx_isp, req);
 	return rc;
@@ -1921,6 +2124,8 @@ static int __cam_isp_ctx_handle_deferred_buf_done_in_bubble(
 
 	if (req_isp->num_acked == req_isp->num_fence_map_out)
 		rc = __cam_isp_ctx_handle_buf_done_for_req_list(ctx_isp, req);
+	else if (__cam_isp_ctx_only_missing_aux(req_isp))
+		rc = __cam_isp_ctx_complete_missing_aux(ctx_isp, req);
 
 	return rc;
 }
@@ -2074,8 +2279,19 @@ static int __cam_isp_ctx_handle_buf_done_for_request_verify_addr(
 				ctx->ctx_id, req_isp->num_deferred_acks, j,
 				req_isp->fence_map_out[j].resource_handle,
 				req_isp->fence_map_out[j].sync_id);
+			if (__cam_isp_is_deferred_mismatch_res(
+				req_isp->fence_map_out[j].resource_handle)) {
+				ctx_isp->process_rdi_mismatch = true;
+				ctx_isp->request_mismatched = req->request_id;
+				ctx_isp->ctx_mismatched = ctx->ctx_id;
+				CAM_DBG(CAM_ISP,
+					"Deferred mismatch req %llu ctx %u res 0x%x",
+					req->request_id, ctx->ctx_id,
+					req_isp->fence_map_out[j].resource_handle);
+			}
 			continue;
-		} else if (!req_isp->bubble_detected) {
+		} else if (!req_isp->bubble_detected &&
+			!ctx_isp->process_rdi_mismatch) {
 			CAM_DBG(CAM_ISP,
 				"Sync with success: req %lld res 0x%x fd 0x%x, ctx %u res %s",
 				req->request_id,
@@ -2184,8 +2400,12 @@ static int __cam_isp_ctx_handle_buf_done_for_request_verify_addr(
 			req_isp->num_fence_map_out, ctx->ctx_id);
 	}
 
-	if (req_isp->num_acked != req_isp->num_fence_map_out)
+	if (req_isp->num_acked != req_isp->num_fence_map_out) {
+		if (__cam_isp_ctx_only_missing_aux(req_isp))
+			return __cam_isp_ctx_complete_missing_aux(ctx_isp, req);
+
 		return rc;
+	}
 
 	rc = __cam_isp_ctx_handle_buf_done_for_req_list(ctx_isp, req);
 	return rc;
@@ -4592,12 +4812,26 @@ static int __cam_isp_ctx_apply_req_in_activated_state(
 			__cam_isp_ctx_handle_buf_done_fail_log(
 				active_req->request_id, active_req_isp,
 				ctx_isp->isp_device_type);
+
+			if (__cam_isp_ctx_only_missing_aux(active_req_isp)) {
+				rc = __cam_isp_ctx_complete_missing_aux(
+					ctx_isp, active_req);
+				if (rc)
+					goto end;
+
+				CAM_WARN_RATE_LIMIT(CAM_ISP,
+					"Recovered congestion by completing missing recoverable outputs req %llu ctx %u",
+					active_req->request_id, ctx->ctx_id);
+				goto congestion_recovered;
+			}
 		}
 
 		rc = -EFAULT;
 		goto end;
-	}
-	req_isp->bubble_report = apply->report_if_bubble;
+		}
+
+congestion_recovered:
+		req_isp->bubble_report = apply->report_if_bubble;
 
 	/*
 	 * Reset all buf done/bubble flags for the req being applied
@@ -5302,8 +5536,14 @@ static int __cam_isp_ctx_flush_req(struct cam_context *ctx,
 					CAM_SYNC_ISP_EVENT_FLUSH);
 				if (rc) {
 					tmp = req_isp->fence_map_out[i].sync_id;
+#if defined(CONFIG_TARGET_PRODUCT_ISHTAR)
+					CAM_DBG(CAM_ISP,
+						"Ignore stale flush fence %d rc %d",
+						tmp, rc);
+#else
 					CAM_ERR_RATE_LIMIT(CAM_ISP,
 						"signal fence %d failed", tmp);
+#endif
 				}
 				req_isp->fence_map_out[i].sync_id = -1;
 			}
@@ -6260,6 +6500,9 @@ static int __cam_isp_ctx_release_dev_in_top_state(struct cam_context *ctx,
 	ctx_isp->vfps_aux_context = false;
 	ctx_isp->rdi_only_context = false;
 	ctx_isp->req_info.last_bufdone_req_id = 0;
+	ctx_isp->process_rdi_mismatch = false;
+	ctx_isp->request_mismatched = -3;
+	ctx_isp->ctx_mismatched = -3;
 	ctx_isp->v4l2_event_sub_ids = 0;
 	ctx_isp->resume_hw_in_flushed = false;
 
@@ -6404,13 +6647,33 @@ static int __cam_isp_ctx_config_dev_in_top_state(
 	req->pf_data.packet_offset = cmd->offset;
 	req->pf_data.req = req;
 	req->packet = packet;
+	req->request_id = packet->header.request_id;
+
+	__cam_isp_ctx_prune_ignored_aux_fences(ctx_isp, req);
 
 	for (i = 0; i < req_isp->num_fence_map_out; i++) {
 		rc = cam_sync_get_obj_ref(req_isp->fence_map_out[i].sync_id);
 		if (rc) {
+#if defined(CONFIG_TARGET_PRODUCT_ISHTAR)
+			int j;
+
+			CAM_DBG(CAM_ISP,
+				"Drop stale ishtar output fence req %llu res 0x%x sync 0x%x ctx %u rc %d",
+				req->request_id,
+				req_isp->fence_map_out[i].resource_handle,
+				req_isp->fence_map_out[i].sync_id,
+				ctx->ctx_id, rc);
+			for (j = i; j < req_isp->num_fence_map_out - 1; j++)
+				req_isp->fence_map_out[j] =
+					req_isp->fence_map_out[j + 1];
+			req_isp->num_fence_map_out--;
+			i--;
+			continue;
+#else
 			CAM_ERR(CAM_ISP, "Can't get ref for fence %d",
 				req_isp->fence_map_out[i].sync_id);
 			goto put_ref;
+#endif
 		}
 	}
 
@@ -6420,7 +6683,6 @@ static int __cam_isp_ctx_config_dev_in_top_state(
 		req_isp->num_cfg, req_isp->num_fence_map_out, req_isp->num_fence_map_in,
 		ctx->ctx_id);
 
-	req->request_id = packet->header.request_id;
 	req->status = 1;
 
 	if (req_isp->hw_update_data.packet_opcode_type ==
@@ -7337,6 +7599,9 @@ static int __cam_isp_ctx_unlink_in_acquired(struct cam_context *ctx,
 	ctx->link_hdl = -1;
 	ctx->ctx_crm_intf = NULL;
 	ctx_isp->trigger_id = -1;
+	ctx_isp->process_rdi_mismatch = false;
+	ctx_isp->request_mismatched = -3;
+	ctx_isp->ctx_mismatched = -3;
 	ctx_isp->mswitch_default_apply_delay_max_cnt = 0;
 	atomic_set(&ctx_isp->mswitch_default_apply_delay_ref_cnt, 0);
 
@@ -8504,6 +8769,9 @@ int cam_isp_context_init(struct cam_isp_context *ctx,
 	ctx->reported_req_id = 0;
 	ctx->bubble_frame_cnt = 0;
 	ctx->req_info.last_bufdone_req_id = 0;
+	ctx->process_rdi_mismatch = false;
+	ctx->request_mismatched = -3;
+	ctx->ctx_mismatched = -3;
 	ctx->v4l2_event_sub_ids = 0;
 
 	ctx->hw_ctx = NULL;

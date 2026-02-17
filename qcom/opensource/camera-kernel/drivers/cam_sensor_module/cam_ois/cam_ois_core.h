@@ -36,5 +36,17 @@ void cam_ois_shutdown(struct cam_ois_ctrl_t *o_ctrl);
 
 struct completion *cam_ois_get_i3c_completion(uint32_t index);
 
+int cam_ois_publish_dev_info(struct cam_req_mgr_device_info *info);
+int32_t cam_ois_establish_link(
+	struct cam_req_mgr_core_dev_link_setup *link);
+int32_t cam_ois_apply_request(struct cam_req_mgr_apply_request *apply);
+int cam_ois_flush_request(struct cam_req_mgr_flush_request *flush);
+int cam_ois_update_req_mgr(
+	struct cam_ois_ctrl_t *o_ctrl,
+	struct cam_packet *csl_packet);
+bool cam_ois_do_frame_skip(
+	int64_t req_id,
+	int32_t dev_hdl);
+
 #endif
 /* _CAM_OIS_CORE_H_ */

@@ -473,6 +473,8 @@ struct cam_req_mgr_core_link {
 	bool                                 try_for_internal_recovery;
 	uint32_t                             properties_mask;
 	uint32_t                             cont_empty_slots;
+	bool                                 print_on;
+	uint32_t                             rdi_mismatch_retry;
 	bool                                 is_shdr;
 	bool                                 wait_for_dual_trigger;
 	struct cam_req_mgr_debug_data        debug_data;

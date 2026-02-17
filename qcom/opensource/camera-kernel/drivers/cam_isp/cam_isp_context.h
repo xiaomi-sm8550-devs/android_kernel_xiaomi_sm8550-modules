@@ -317,6 +317,9 @@ struct cam_isp_context {
 	uint32_t                         frame_id_meta;
 	uint32_t                         substate_activated;
 	atomic_t                         process_bubble;
+	bool                             process_rdi_mismatch;
+	int64_t                          request_mismatched;
+	int32_t                          ctx_mismatched;
 	struct cam_ctx_ops              *substate_machine;
 	struct cam_isp_ctx_irq_ops      *substate_machine_irq;
 

@@ -254,9 +254,10 @@ static int cam_eeprom_i2c_component_bind(struct device *dev,
 			soc_private->i2c_info.slave_addr;
 
 	e_ctrl->bridge_intf.device_hdl = -1;
-	e_ctrl->bridge_intf.ops.get_dev_info = NULL;
-	e_ctrl->bridge_intf.ops.link_setup = NULL;
-	e_ctrl->bridge_intf.ops.apply_req = NULL;
+	e_ctrl->bridge_intf.ops.get_dev_info = cam_eeprom_publish_dev_info;
+	e_ctrl->bridge_intf.ops.link_setup = cam_eeprom_establish_link;
+	e_ctrl->bridge_intf.ops.apply_req = cam_eeprom_apply_request;
+	e_ctrl->bridge_intf.ops.flush_req = cam_eeprom_flush_request;
 	e_ctrl->cam_eeprom_state = CAM_EEPROM_INIT;
 
 	return rc;
@@ -421,9 +422,10 @@ static int cam_eeprom_spi_setup(struct spi_device *spi)
 	if (rc)
 		goto board_free;
 
-	e_ctrl->bridge_intf.ops.get_dev_info = NULL;
-	e_ctrl->bridge_intf.ops.link_setup = NULL;
-	e_ctrl->bridge_intf.ops.apply_req = NULL;
+	e_ctrl->bridge_intf.ops.get_dev_info = cam_eeprom_publish_dev_info;
+	e_ctrl->bridge_intf.ops.link_setup = cam_eeprom_establish_link;
+	e_ctrl->bridge_intf.ops.apply_req = cam_eeprom_apply_request;
+	e_ctrl->bridge_intf.ops.flush_req = cam_eeprom_flush_request;
 
 	v4l2_set_subdevdata(&e_ctrl->v4l2_dev_str.sd, e_ctrl);
 	return rc;
@@ -556,9 +558,10 @@ static int cam_eeprom_component_bind(struct device *dev,
 		goto free_soc;
 
 	e_ctrl->bridge_intf.device_hdl = -1;
-	e_ctrl->bridge_intf.ops.get_dev_info = NULL;
-	e_ctrl->bridge_intf.ops.link_setup = NULL;
-	e_ctrl->bridge_intf.ops.apply_req = NULL;
+	e_ctrl->bridge_intf.ops.get_dev_info = cam_eeprom_publish_dev_info;
+	e_ctrl->bridge_intf.ops.link_setup = cam_eeprom_establish_link;
+	e_ctrl->bridge_intf.ops.apply_req = cam_eeprom_apply_request;
+	e_ctrl->bridge_intf.ops.flush_req = cam_eeprom_flush_request;
 	platform_set_drvdata(pdev, e_ctrl);
 	e_ctrl->cam_eeprom_state = CAM_EEPROM_INIT;
 	CAM_DBG(CAM_EEPROM, "Component bound successfully");

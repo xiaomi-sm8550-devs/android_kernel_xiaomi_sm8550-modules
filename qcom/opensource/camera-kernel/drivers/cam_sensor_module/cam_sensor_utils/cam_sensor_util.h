@@ -25,6 +25,11 @@
 #define RES_MGR_GPIO_NEED_HOLD   1
 #define RES_MGR_GPIO_CAN_FREE    2
 
+// xiaomi add
+#define MAX_CCI_DEV 4
+#define MAX_MASTER_DEV 3
+// xiaomi add
+
 /*
  * Constant Factors needed to change QTimer ticks to nanoseconds
  * QTimer Freq = 19.2 MHz
@@ -61,6 +66,10 @@ int cam_sensor_util_i2c_apply_setting(struct camera_io_master *io_master_info,
 	struct i2c_settings_list *i2c_list);
 
 int32_t cam_sensor_i2c_read_data(
+	struct i2c_settings_array *i2c_settings,
+	struct camera_io_master *io_master_info);
+
+int32_t cam_sensor_i2c_read_write_ois_data(
 	struct i2c_settings_array *i2c_settings,
 	struct camera_io_master *io_master_info);
 
@@ -101,5 +110,18 @@ static inline int cam_sensor_util_aon_registration(uint32_t phy_idx, uint8_t aon
 	CAM_DBG(CAM_SENSOR, "Register phy_idx: %u for AON_Camera_ID: %d", phy_idx, aon_camera_id);
 	return cam_csiphy_util_update_aon_registration(phy_idx, aon_camera_id);
 }
+
+struct skip_frame {
+	uint64_t req_id;
+	uint64_t skip_num;
+};
+
+// xiaomi add
+void init_power_sync_mutex(int cci, int master);
+
+void lock_power_sync_mutex(int cci, int master);
+
+void unlock_power_sync_mutex(int cci, int master);
+// xiaomi add
 
 #endif /* _CAM_SENSOR_UTIL_H_ */

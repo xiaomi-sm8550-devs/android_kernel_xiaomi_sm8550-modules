@@ -310,7 +310,11 @@ int32_t cam_csiphy_parse_dt_info(struct platform_device *pdev,
 		csiphy_dev->is_divisor_32_comp = true;
 		csiphy_dev->clk_lane = 0;
 	} else if (of_device_is_compatible(soc_info->dev->of_node, "qcom,csiphy-v2.1.2")) {
+#if defined(CONFIG_TARGET_PRODUCT_ISHTAR)
+		csiphy_dev->ctrl_reg = &ctrl_reg_2_1_2_m1;
+#else
 		csiphy_dev->ctrl_reg = &ctrl_reg_2_1_2;
+#endif
 		csiphy_dev->hw_version = CSIPHY_VERSION_V212;
 		csiphy_dev->is_divisor_32_comp = true;
 		csiphy_dev->clk_lane = 0;
@@ -320,8 +324,13 @@ int32_t cam_csiphy_parse_dt_info(struct platform_device *pdev,
 		csiphy_dev->is_divisor_32_comp = true;
 		csiphy_dev->clk_lane = 0;
 	} else if (of_device_is_compatible(soc_info->dev->of_node, "qcom,csiphy-v2.2.0")) {
+#if defined(CONFIG_TARGET_PRODUCT_ISHTAR)
+		csiphy_dev->ctrl_reg = &ctrl_reg_2_1_2_m1;
+		csiphy_dev->hw_version = CSIPHY_VERSION_V212;
+#else
 		csiphy_dev->ctrl_reg = &ctrl_reg_2_2_0;
 		csiphy_dev->hw_version = CSIPHY_VERSION_V220;
+#endif
 		csiphy_dev->is_divisor_32_comp = true;
 		csiphy_dev->clk_lane = 0;
 	} else if (of_device_is_compatible(soc_info->dev->of_node, "qcom,csiphy-v2.1.2-m1")) {

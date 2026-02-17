@@ -264,6 +264,8 @@ static int cam_actuator_i2c_component_bind(struct device *dev,
 	parklens_atomic_set(&(a_ctrl->parklens_ctrl.parklens_state),
 		PARKLENS_INVALID);
 	a_ctrl->parklens_ctrl.parklens_thread = NULL;
+
+	INIT_LIST_HEAD(&(a_ctrl->i2c_data.write_settings.list_head)); //xiaomi add
 	/* xiaomi add end */
 	return rc;
 
@@ -445,6 +447,8 @@ static int cam_actuator_platform_component_bind(struct device *dev,
 	parklens_atomic_set(&(a_ctrl->parklens_ctrl.parklens_state),
 		PARKLENS_INVALID);
 	a_ctrl->parklens_ctrl.parklens_thread = NULL;
+
+	INIT_LIST_HEAD(&(a_ctrl->i2c_data.write_settings.list_head)); //xiaomi add
 	/* xiaomi add end */
 
 	CAM_DBG(CAM_ACTUATOR, "Component bound successfully %d",

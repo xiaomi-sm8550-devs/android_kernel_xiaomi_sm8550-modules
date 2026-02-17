@@ -161,6 +161,7 @@ static void cam_csiphy_reset_phyconfig_param(struct csiphy_device *csiphy_dev,
 	csiphy_dev->csiphy_info[index].mipi_flags = 0;
 	csiphy_dev->csiphy_info[index].hdl_data.device_hdl = -1;
 	csiphy_dev->csiphy_info[index].csiphy_3phase = -1;
+	csiphy_dev->csiphy_info[index].is_modify_onthego = false;
 }
 
 static inline void cam_csiphy_apply_onthego_reg_values(void __iomem *csiphybase, uint8_t csiphy_idx)
@@ -766,6 +767,8 @@ static int __cam_csiphy_parse_lane_info_cmd_buf(
 		cam_cmd_csiphy_info->secure_mode;
 	csiphy_dev->csiphy_info[index].mipi_flags =
 		(cam_cmd_csiphy_info->mipi_flags & SKEW_CAL_MASK);
+	csiphy_dev->csiphy_info[index].is_modify_onthego =
+		cam_cmd_csiphy_info->is_modify_onthego;
 
 	lane_assign = csiphy_dev->csiphy_info[index].lane_assign;
 	lane_cnt = csiphy_dev->csiphy_info[index].lane_cnt;
@@ -1190,8 +1193,9 @@ static int cam_csiphy_cphy_data_rate_config(struct csiphy_device *csiphy_device,
 			case CSIPHY_AUXILIARY_SETTING: {
 				uint32_t phy_idx = csiphy_device->soc_info.index;
 
-				if (g_phy_data[phy_idx].data_rate_aux_mask &
-					BIT_ULL(data_rate_idx)) {
+				if ((g_phy_data[phy_idx].data_rate_aux_mask &
+					BIT_ULL(data_rate_idx)) &&
+					csiphy_device->csiphy_info[idx].is_modify_onthego) {
 					cam_io_w_mb(reg_data, csiphybase + reg_addr);
 					CAM_DBG(CAM_CSIPHY,
 						"CSIPHY: %u configuring new aux setting reg_addr: 0x%x reg_val: 0x%x",
@@ -1558,6 +1562,8 @@ static int32_t cam_csiphy_external_cmd(struct csiphy_device *csiphy_dev,
 			cam_cmd_csiphy_info.settle_time;
 		csiphy_dev->csiphy_info[index].data_rate =
 			cam_cmd_csiphy_info.data_rate;
+		csiphy_dev->csiphy_info[index].is_modify_onthego =
+			cam_cmd_csiphy_info.is_modify_onthego;
 		CAM_DBG(CAM_CSIPHY,
 			"%s CONFIG_DEV_EXT settle_time= %lld lane_cnt=%d",
 			__func__,
@@ -2138,7 +2144,7 @@ int32_t cam_csiphy_core_cfg(void *phy_dev,
 			csiphy_dev->session_max_device_support = 1;
 		}
 
-		bridge_params.ops = NULL;
+		bridge_params.ops = &csiphy_dev->ops;
 		bridge_params.session_hdl = csiphy_acq_dev.session_handle;
 		bridge_params.v4l2_sub_dev_flag = 0;
 		bridge_params.media_entity_flag = 0;
