@@ -259,11 +259,17 @@ int cam_vfe_hw_init(struct cam_isp_hw_intf_data **vfe_hw_intf,
 {
 	int rc = 0;
 
-	if (hw_idx < CAM_VFE_HW_NUM_MAX && cam_vfe_hw_list[hw_idx].hw_intf) {
-		*vfe_hw_intf = &cam_vfe_hw_list[hw_idx];
-		rc = 0;
+	if (hw_idx < CAM_VFE_HW_NUM_MAX) {
+		if (cam_vfe_hw_list[hw_idx].hw_intf) {
+			*vfe_hw_intf = &cam_vfe_hw_list[hw_idx];
+			rc = 0;
+		} else {
+			CAM_ERR(CAM_ISP, "inval param: hw_idx %d, hw_intf %pK", hw_idx, cam_vfe_hw_list[hw_idx].hw_intf);
+			*vfe_hw_intf = NULL;
+			rc = -ENODEV;
+		}
 	} else {
-		CAM_ERR(CAM_ISP, "inval param: hw_idx %d, hw_intf %pK", hw_idx, cam_vfe_hw_list[hw_idx].hw_intf);
+		CAM_ERR(CAM_ISP, "inval param: hw_idx %d out of range", hw_idx);
 		*vfe_hw_intf = NULL;
 		rc = -ENODEV;
 	}
