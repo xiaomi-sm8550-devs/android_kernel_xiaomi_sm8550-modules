@@ -32,7 +32,11 @@ static int cam_vfe_component_bind(struct device *dev,
 	uint32_t  vfe_dev_idx;
 	uint32_t  i;
 
+	CAM_WARN(CAM_ISP, "cam_vfe_component_bind called for device: %s", dev_name(dev));
+
 	of_property_read_u32(pdev->dev.of_node, "cell-index", &vfe_dev_idx);
+
+	CAM_WARN(CAM_ISP, "cam_vfe_component_bind: vfe_dev_idx=%d", vfe_dev_idx);
 
 	if (!cam_cpas_is_feature_supported(CAM_CPAS_ISP_FUSE, BIT(vfe_dev_idx), NULL) ||
 		!cam_cpas_is_feature_supported(CAM_CPAS_ISP_LITE_FUSE,
@@ -48,8 +52,11 @@ static int cam_vfe_component_bind(struct device *dev,
 	vfe_hw_intf = kzalloc(sizeof(struct cam_hw_intf), GFP_KERNEL);
 	if (!vfe_hw_intf) {
 		rc = -ENOMEM;
+		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw_intf");
 		goto end;
 	}
+
+	CAM_WARN(CAM_ISP, "cam_vfe_component_bind: allocated vfe_hw_intf=%pK", vfe_hw_intf);
 
 	vfe_hw = kzalloc(sizeof(struct cam_hw_info), GFP_KERNEL);
 	if (!vfe_hw) {
