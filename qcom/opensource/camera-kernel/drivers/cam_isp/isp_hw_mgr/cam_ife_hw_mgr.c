@@ -14825,6 +14825,7 @@ int cam_ife_hw_mgr_init(struct cam_hw_mgr_intf *hw_mgr_intf, int *iommu_hdl)
 	/* fill ife hw intf information */
 	for (i = 0, j = 0; i < CAM_IFE_HW_NUM_MAX; i++) {
 		rc = cam_vfe_hw_init(&g_ife_hw_mgr.ife_devices[i], i);
+		CAM_DBG(CAM_ISP, "VFE[%d] init result: %d, hw_intf: %pK", i, rc, g_ife_hw_mgr.ife_devices[i]);
 		if (!rc) {
 			struct cam_hw_intf *ife_device =
 				g_ife_hw_mgr.ife_devices[i]->hw_intf;
