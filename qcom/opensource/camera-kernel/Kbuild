@@ -71,6 +71,11 @@ LINUXINCLUDE +=                                 \
 # Optional include directories
 ccflags-$(CONFIG_MSM_GLOBAL_SYNX) += -I$(KERNEL_ROOT)/drivers/media/platform/msm/synx
 
+# Pass target product macro to camera-kernel
+ccflags-$(CONFIG_TARGET_PRODUCT_ISHTAR) += -DCONFIG_TARGET_PRODUCT_ISHTAR=1
+ccflags-$(CONFIG_TARGET_PRODUCT_NUWA) += -DCONFIG_TARGET_PRODUCT_NUWA=1
+ccflags-$(CONFIG_TARGET_PRODUCT_FUXI) += -DCONFIG_TARGET_PRODUCT_FUXI=1
+
 # After creating lists, add content of 'ccflags-m' variable to 'ccflags-y' one.
 ccflags-y += ${ccflags-m}
 
