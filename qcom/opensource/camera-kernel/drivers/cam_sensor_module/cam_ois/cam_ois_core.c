@@ -1393,6 +1393,11 @@ static int cam_ois_pkt_parse(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 			}
 		}
 
+		/* Release the buffer after use */
+		if (io_cfg->direction == CAM_BUF_OUTPUT && io_cfg->mem_handle[0]) {
+			cam_mem_put_cpu_buf(io_cfg->mem_handle[0]);
+		}
+
 		rc = delete_request(&i2c_read_settings);
 		if (rc < 0) {
 			CAM_ERR(CAM_OIS,

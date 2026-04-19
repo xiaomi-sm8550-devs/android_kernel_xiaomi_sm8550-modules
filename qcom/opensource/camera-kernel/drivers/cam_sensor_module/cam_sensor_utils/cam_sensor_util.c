@@ -388,7 +388,8 @@ static int32_t cam_sensor_get_io_buffer(
 			io_cfg->direction);
 		rc = -EINVAL;
 	}
-	cam_mem_put_cpu_buf(io_cfg->mem_handle[0]);
+	/* Don't release the buffer here, it will be used by cam_sensor_i2c_read_data */
+	/* The buffer will be released in cam_ois_core.c after read operation */
 	return rc;
 }
 
