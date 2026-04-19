@@ -471,6 +471,9 @@ static int32_t cam_sensor_handle_random_read(
 	rc = cam_sensor_get_io_buffer(io_cfg, &(i2c_list->i2c_settings));
 	if (rc) {
 		CAM_ERR(CAM_SENSOR, "Failed to get read buffer: %d", rc);
+		/* Remove the list entry before returning error */
+		list_del(&i2c_list->list);
+		kfree(i2c_list);
 		return rc;
 	}
 
@@ -498,7 +501,8 @@ static int32_t cam_sensor_handle_random_read(
 static int32_t cam_sensor_handle_continuous_read(
 	struct cam_cmd_i2c_continuous_rd *cmd_i2c_continuous_rd,
 	struct i2c_settings_array *i2c_reg_settings,
-	uint16_t *cmd_length_in_bytes, int32_t *offset,
+	uint16_t *cmd_length_in_bytes,
+	int32_t *offset,
 	struct list_head **list,
 	struct cam_buf_io_cfg *io_cfg)
 {
@@ -517,6 +521,9 @@ static int32_t cam_sensor_handle_continuous_read(
 	rc = cam_sensor_get_io_buffer(io_cfg, &(i2c_list->i2c_settings));
 	if (rc) {
 		CAM_ERR(CAM_SENSOR, "Failed to get read buffer: %d", rc);
+		/* Remove the list entry before returning error */
+		list_del(&i2c_list->list);
+		kfree(i2c_list);
 		return rc;
 	}
 
