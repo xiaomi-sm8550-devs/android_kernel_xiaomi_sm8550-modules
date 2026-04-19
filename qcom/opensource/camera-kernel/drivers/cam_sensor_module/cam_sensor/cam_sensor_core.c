@@ -1009,7 +1009,7 @@ int cam_sensor_match_id(struct cam_sensor_ctrl_t *s_ctrl)
 		return -EINVAL;
 	}
 
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	/* xiaomi modified start */
 	rc = camera_io_dev_read(
 		&(s_ctrl->io_master_info),
