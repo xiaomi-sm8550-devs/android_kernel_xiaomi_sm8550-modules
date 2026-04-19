@@ -1008,6 +1008,12 @@ int32_t cam_sensor_i2c_read_data(
 
 	list_for_each_entry(i2c_list,
 		&(i2c_settings->list_head), list) {
+		/* Skip non-read commands */
+		if (i2c_list->op_code != CAM_SENSOR_I2C_READ_RANDOM &&
+		    i2c_list->op_code != CAM_SENSOR_I2C_READ_SEQ) {
+			continue;
+		}
+
 		read_buff = i2c_list->i2c_settings.read_buff;
 		buff_length = i2c_list->i2c_settings.read_buff_len;
 		if ((read_buff == NULL) || (buff_length == 0)) {
