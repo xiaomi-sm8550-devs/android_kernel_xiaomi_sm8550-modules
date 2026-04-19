@@ -1147,7 +1147,8 @@ static int cam_ois_pkt_parse(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 				}
 			}
 			if ( config_flag != 1 ) {
-				CAM_ERR(CAM_OIS, "ERROR! need  pkt function or repeat flag , flag  %d", config_flag);
+				CAM_WARN(CAM_OIS, "Customized OIS flag %d not found, using default OIS init", o_ctrl->opcode.customized_ois_flag);
+				// Continue with default OIS initialization
 			}
 		} else {
 			if (o_ctrl->i2c_fwinit_data.is_settings_valid == 1) {
