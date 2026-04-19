@@ -37,8 +37,12 @@ static int cam_vfe_component_bind(struct device *dev,
 	if (!cam_cpas_is_feature_supported(CAM_CPAS_ISP_FUSE, BIT(vfe_dev_idx), NULL) ||
 		!cam_cpas_is_feature_supported(CAM_CPAS_ISP_LITE_FUSE,
 		BIT(vfe_dev_idx), NULL)) {
+#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
+		CAM_WARN(CAM_ISP, "IFE:%d is not supported, but continuing for ISHTAR", vfe_dev_idx);
+#else
 		CAM_DBG(CAM_ISP, "IFE:%d is not supported", vfe_dev_idx);
 		goto end;
+#endif
 	}
 
 	vfe_hw_intf = kzalloc(sizeof(struct cam_hw_intf), GFP_KERNEL);
