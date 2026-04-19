@@ -3548,7 +3548,7 @@ int cam_cpas_hw_probe(struct platform_device *pdev,
 		return -ENOMEM;
 	}
 
-	cpas_core = kzalloc(sizeof(struct cam_cpas), GFP_KERNEL);
+	cpas_core = kzalloc(sizeof(struct cam_cpas), GFP_KERNEL | __GFP_NOFAIL);
 	if (!cpas_core) {
 		kfree(cpas_hw);
 		kfree(cpas_hw_intf);
