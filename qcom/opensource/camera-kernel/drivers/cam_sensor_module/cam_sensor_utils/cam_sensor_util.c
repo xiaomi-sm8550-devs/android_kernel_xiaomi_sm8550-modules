@@ -915,6 +915,13 @@ int cam_sensor_i2c_command_parser(
 	return rc;
 
 end:
+	/* Clean up any i2c_list entries that were added to the list */
+	while (!list_empty(&i2c_reg_settings->list_head)) {
+		struct i2c_settings_list *i2c_list;
+		i2c_list = list_first_entry(&i2c_reg_settings->list_head, struct i2c_settings_list, list);
+		list_del(&i2c_list->list);
+		kfree(i2c_list);
+	}
 	cam_mem_put_cpu_buf(cmd_desc[i].mem_handle);
 	return rc;
 }
