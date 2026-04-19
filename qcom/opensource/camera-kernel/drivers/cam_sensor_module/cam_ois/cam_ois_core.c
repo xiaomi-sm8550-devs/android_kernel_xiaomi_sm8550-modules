@@ -324,7 +324,7 @@ static int cam_ois_apply_settings(struct cam_ois_ctrl_t *o_ctrl,
 	return rc;
 }
 
-#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 #define OIS_TRANS_SIZE 256
 #endif
 
@@ -371,7 +371,7 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 {
 	uint16_t                           total_bytes = 0;
 	uint8_t                           *ptr = NULL;
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	int32_t                            rc = 0, cnt, i, j;
 	#else
 	int32_t                            rc = 0, cnt;
@@ -380,12 +380,12 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 	const struct firmware             *fw = NULL;
 	const char                        *fw_name_prog = NULL;
 	const char                        *fw_name_coeff = NULL;
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	const char                        *fw_name_mem = NULL;
 	#endif
 	char                               name_prog[32] = {0};
 	char                               name_coeff[32] = {0};
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	char                               name_mem[32] = {0};
 	#endif
 	struct device                     *dev = &(o_ctrl->pdev->dev);
@@ -401,14 +401,14 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 
 	snprintf(name_prog, 32, "%s.prog", o_ctrl->ois_name);
 
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	snprintf(name_mem, 32, "%s.mem", o_ctrl->ois_name);
 	#endif
 
 	/* cast pointer as const pointer*/
 	fw_name_prog = name_prog;
 	fw_name_coeff = name_coeff;
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	fw_name_mem = name_mem;
 	#endif
 
@@ -442,7 +442,7 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 	i2c_reg_setting.reg_setting = (struct cam_sensor_i2c_reg_array *) (
 		vaddr);
 
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	for (i = 0, ptr = (uint8_t *)fw->data, j = 0; i < total_bytes;) {
 		for (cnt = 0; cnt < OIS_TRANS_SIZE && i < total_bytes;
 			cnt++, ptr++, i++) {
@@ -451,7 +451,7 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 		cnt++, ptr++) {
 	#endif
 		i2c_reg_setting.reg_setting[cnt].reg_addr =
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 			o_ctrl->opcode.prog + j * OIS_TRANS_SIZE;
 	#else
 			o_ctrl->opcode.prog;
@@ -460,7 +460,7 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 		i2c_reg_setting.reg_setting[cnt].delay = 0;
 		i2c_reg_setting.reg_setting[cnt].data_mask = 0;
 	}
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 		i2c_reg_setting.size = cnt;
 
 		if (o_ctrl->opcode.is_addr_increase) {
@@ -474,7 +474,7 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 		CAM_ERR(CAM_OIS, "OIS FW(prog) size(%d) download failed. %d",
 			total_bytes, rc);
 		goto release_firmware;
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 		}
 	#endif
 	}
@@ -512,7 +512,7 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 	i2c_reg_setting.reg_setting = (struct cam_sensor_i2c_reg_array *) (
 		vaddr);
 
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 	for (i = 0, ptr = (uint8_t *)fw->data, j = 0; i < total_bytes;) {
 		for (cnt = 0; cnt < OIS_TRANS_SIZE && i < total_bytes;
 			cnt++, ptr++, i++) {
@@ -521,7 +521,7 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 		cnt++, ptr++) {
 	#endif
 		i2c_reg_setting.reg_setting[cnt].reg_addr =
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 			o_ctrl->opcode.coeff + j * OIS_TRANS_SIZE;
 	#else
 			o_ctrl->opcode.coeff;
@@ -530,7 +530,7 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 		i2c_reg_setting.reg_setting[cnt].delay = 0;
 		i2c_reg_setting.reg_setting[cnt].data_mask = 0;
 	}
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)		
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)		
 	i2c_reg_setting.size = cnt;
 
 		if (o_ctrl->opcode.is_addr_increase) {
@@ -541,14 +541,14 @@ static int cam_default_ois_fw_download(struct cam_ois_ctrl_t *o_ctrl)
 	rc = camera_io_dev_write_continuous(&(o_ctrl->io_master_info),
 		&i2c_reg_setting, CAM_SENSOR_I2C_WRITE_BURST);
 
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)		
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)		
 		if (rc < 0) {
 	#else
 	if (rc < 0)
 	#endif
 		CAM_ERR(CAM_OIS, "OIS FW(coeff) size(%d) download failed rc: %d",
 			total_bytes, rc);
-	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA)		
+	#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)		
 			goto release_firmware;
 		}
 	}
