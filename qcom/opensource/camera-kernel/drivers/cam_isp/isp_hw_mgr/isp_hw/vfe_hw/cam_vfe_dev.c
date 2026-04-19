@@ -52,11 +52,10 @@ static int cam_vfe_component_bind(struct device *dev,
 	vfe_hw_intf = kzalloc(sizeof(struct cam_hw_intf), GFP_ATOMIC);
 	if (!vfe_hw_intf) {
 		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw_intf with GFP_ATOMIC, trying GFP_KERNEL");
-		vfe_hw_intf = kzalloc(sizeof(struct cam_hw_intf), GFP_KERNEL);
-	}
+		vfe_hw_intf = kzalloc(sizeof(struct cam_hw_intf), GFP_KERNEL | __GFP_NOFAIL);
 	if (!vfe_hw_intf) {
+		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw_intf with __GFP_NOFAIL");
 		rc = -ENOMEM;
-		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw_intf");
 		goto end;
 	}
 
