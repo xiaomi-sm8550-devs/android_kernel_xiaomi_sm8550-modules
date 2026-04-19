@@ -1266,11 +1266,22 @@ static int cam_ois_pkt_parse(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 	case CAM_OIS_PACKET_OPCODE_OIS_CONTROL:
 	case 5: /* CAM_OIS_PACKET_OPCODE_OIS_CONTROL2 for ISHTAR */
 		if (o_ctrl->cam_ois_state < CAM_OIS_CONFIG) {
+#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
+			if (o_ctrl->cam_ois_state < CAM_OIS_ACQUIRE) {
+				rc = -EINVAL;
+				CAM_WARN(CAM_OIS,
+					"Not in right state to control OIS: %d",
+					o_ctrl->cam_ois_state);
+				goto end;
+			}
+			CAM_WARN(CAM_OIS, "OIS control in ACQUIRE state for ISHTAR, continuing...");
+#else
 			rc = -EINVAL;
 			CAM_WARN(CAM_OIS,
 				"Not in right state to control OIS: %d",
 				o_ctrl->cam_ois_state);
 			goto end;
+#endif
 		}
 		offset = (uint32_t *)&csl_packet->payload;
 		offset += (csl_packet->cmd_buf_offset / sizeof(uint32_t));
