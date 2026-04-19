@@ -471,25 +471,26 @@ static int32_t cam_sensor_handle_random_read(
 	rc = cam_sensor_get_io_buffer(io_cfg, &(i2c_list->i2c_settings));
 	if (rc) {
 		CAM_ERR(CAM_SENSOR, "Failed to get read buffer: %d", rc);
-	} else {
-		*cmd_length_in_bytes = sizeof(struct i2c_rdwr_header) +
-			(sizeof(struct cam_cmd_read) *
-			payload_count);
-		i2c_list->op_code = CAM_SENSOR_I2C_READ_RANDOM;
-		i2c_list->i2c_settings.addr_type =
-			cmd_i2c_random_rd->header.addr_type;
-		i2c_list->i2c_settings.data_type =
-			cmd_i2c_random_rd->header.data_type;
-		i2c_list->i2c_settings.size =
-			payload_count;
-
-		for (cnt = 0; cnt < payload_count; cnt++) {
-			i2c_list->i2c_settings.reg_setting[cnt].reg_addr =
-				cmd_i2c_random_rd->data_read[cnt].reg_data;
-		}
-		*offset = cnt;
-		*list = &(i2c_list->list);
+		return rc;
 	}
+
+	*cmd_length_in_bytes = sizeof(struct i2c_rdwr_header) +
+		(sizeof(struct cam_cmd_read) *
+		payload_count);
+	i2c_list->op_code = CAM_SENSOR_I2C_READ_RANDOM;
+	i2c_list->i2c_settings.addr_type =
+		cmd_i2c_random_rd->header.addr_type;
+	i2c_list->i2c_settings.data_type =
+		cmd_i2c_random_rd->header.data_type;
+	i2c_list->i2c_settings.size =
+		payload_count;
+
+	for (cnt = 0; cnt < payload_count; cnt++) {
+		i2c_list->i2c_settings.reg_setting[cnt].reg_addr =
+			cmd_i2c_random_rd->data_read[cnt].reg_data;
+	}
+	*offset = cnt;
+	*list = &(i2c_list->list);
 
 	return rc;
 }
@@ -516,22 +517,23 @@ static int32_t cam_sensor_handle_continuous_read(
 	rc = cam_sensor_get_io_buffer(io_cfg, &(i2c_list->i2c_settings));
 	if (rc) {
 		CAM_ERR(CAM_SENSOR, "Failed to get read buffer: %d", rc);
-	} else {
-		*cmd_length_in_bytes = sizeof(struct cam_cmd_i2c_continuous_rd);
-		i2c_list->op_code = CAM_SENSOR_I2C_READ_SEQ;
-
-		i2c_list->i2c_settings.addr_type =
-			cmd_i2c_continuous_rd->header.addr_type;
-		i2c_list->i2c_settings.data_type =
-			cmd_i2c_continuous_rd->header.data_type;
-		i2c_list->i2c_settings.size =
-			cmd_i2c_continuous_rd->header.count;
-		i2c_list->i2c_settings.reg_setting[0].reg_addr =
-			cmd_i2c_continuous_rd->reg_addr;
-
-		*offset = cnt;
-		*list = &(i2c_list->list);
+		return rc;
 	}
+
+	*cmd_length_in_bytes = sizeof(struct cam_cmd_i2c_continuous_rd);
+	i2c_list->op_code = CAM_SENSOR_I2C_READ_SEQ;
+
+	i2c_list->i2c_settings.addr_type =
+		cmd_i2c_continuous_rd->header.addr_type;
+	i2c_list->i2c_settings.data_type =
+		cmd_i2c_continuous_rd->header.data_type;
+	i2c_list->i2c_settings.size =
+		cmd_i2c_continuous_rd->header.count;
+	i2c_list->i2c_settings.reg_setting[0].reg_addr =
+		cmd_i2c_continuous_rd->reg_addr;
+
+	*offset = cnt;
+	*list = &(i2c_list->list);
 
 	return rc;
 }
