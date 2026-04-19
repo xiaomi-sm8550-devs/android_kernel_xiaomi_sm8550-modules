@@ -49,7 +49,11 @@ static int cam_vfe_component_bind(struct device *dev,
 #endif
 	}
 
-	vfe_hw_intf = kzalloc(sizeof(struct cam_hw_intf), GFP_KERNEL);
+	vfe_hw_intf = kzalloc(sizeof(struct cam_hw_intf), GFP_ATOMIC);
+	if (!vfe_hw_intf) {
+		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw_intf with GFP_ATOMIC, trying GFP_KERNEL");
+		vfe_hw_intf = kzalloc(sizeof(struct cam_hw_intf), GFP_KERNEL);
+	}
 	if (!vfe_hw_intf) {
 		rc = -ENOMEM;
 		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw_intf");
@@ -58,7 +62,11 @@ static int cam_vfe_component_bind(struct device *dev,
 
 	CAM_WARN(CAM_ISP, "cam_vfe_component_bind: allocated vfe_hw_intf=%pK", vfe_hw_intf);
 
-	vfe_hw = kzalloc(sizeof(struct cam_hw_info), GFP_KERNEL);
+	vfe_hw = kzalloc(sizeof(struct cam_hw_info), GFP_ATOMIC);
+	if (!vfe_hw) {
+		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw with GFP_ATOMIC, trying GFP_KERNEL");
+		vfe_hw = kzalloc(sizeof(struct cam_hw_info), GFP_KERNEL);
+	}
 	if (!vfe_hw) {
 		rc = -ENOMEM;
 		goto free_vfe_hw_intf;
