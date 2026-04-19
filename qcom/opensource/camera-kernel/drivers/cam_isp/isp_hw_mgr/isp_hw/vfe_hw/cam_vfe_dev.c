@@ -259,6 +259,10 @@ int cam_vfe_hw_init(struct cam_isp_hw_intf_data **vfe_hw_intf,
 {
 	int rc = 0;
 
+	CAM_WARN(CAM_ISP, "cam_vfe_hw_init called: hw_idx=%d, CAM_VFE_HW_NUM_MAX=%d, &list=%pK",
+		hw_idx, CAM_VFE_HW_NUM_MAX, cam_vfe_hw_list);
+	CAM_WARN(CAM_ISP, "cam_vfe_hw_init: list[%d].hw_intf=%pK", hw_idx, cam_vfe_hw_list[hw_idx].hw_intf);
+
 	if (hw_idx < CAM_VFE_HW_NUM_MAX) {
 		if (cam_vfe_hw_list[hw_idx].hw_intf) {
 			*vfe_hw_intf = &cam_vfe_hw_list[hw_idx];
