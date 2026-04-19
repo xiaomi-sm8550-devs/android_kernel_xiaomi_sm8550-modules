@@ -1316,11 +1316,22 @@ static int cam_ois_pkt_parse(struct cam_ois_ctrl_t *o_ctrl, void *arg)
 		struct i2c_settings_array i2c_read_settings;
 
 		if (o_ctrl->cam_ois_state < CAM_OIS_CONFIG) {
+#if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
+			if (o_ctrl->cam_ois_state < CAM_OIS_ACQUIRE) {
+				rc = -EINVAL;
+				CAM_WARN(CAM_OIS,
+					"Not in right state to read OIS: %d",
+					o_ctrl->cam_ois_state);
+				goto end;
+			}
+			CAM_WARN(CAM_OIS, "OIS read in ACQUIRE state for ISHTAR, continuing...");
+#else
 			rc = -EINVAL;
 			CAM_WARN(CAM_OIS,
 				"Not in right state to read OIS: %d",
 				o_ctrl->cam_ois_state);
 			goto end;
+#endif
 		}
 		CAM_DBG(CAM_OIS, "number of I/O configs: %d:",
 			csl_packet->num_io_configs);
