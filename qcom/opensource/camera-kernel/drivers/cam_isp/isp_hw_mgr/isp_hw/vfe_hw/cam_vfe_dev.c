@@ -43,8 +43,6 @@ static int cam_vfe_component_bind(struct device *dev,
 		BIT(vfe_dev_idx), NULL)) {
 #if defined(CONFIG_TARGET_PRODUCT_FUXI) || defined(CONFIG_TARGET_PRODUCT_NUWA) || defined(CONFIG_TARGET_PRODUCT_ISHTAR)
 		CAM_WARN(CAM_ISP, "IFE:%d is not supported, but continuing for ISHTAR", vfe_dev_idx);
-		rc = -ENODEV;
-		goto end;
 #else
 		CAM_DBG(CAM_ISP, "IFE:%d is not supported", vfe_dev_idx);
 		goto end;
