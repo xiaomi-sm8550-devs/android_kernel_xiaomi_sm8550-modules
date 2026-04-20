@@ -4249,18 +4249,26 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 	for (i = 0; i < num_devices; i++) {
 		dev = &link->l_dev[i];
 		/* Using dev hdl, get ops ptr to communicate with device */
-		if (link_info->version == VERSION_1)
+		if (link_info->version == VERSION_1) {
+			CAM_ERR(CAM_CRM, "Trying dev_hdl %x (i=%d, v1)",
+				link_info->u.link_info_v1.dev_hdls[i], i);
 			dev->ops = (struct cam_req_mgr_kmd_ops *)
 					cam_get_device_ops(
 					link_info->u.link_info_v1.dev_hdls[i]);
-		else if (link_info->version == VERSION_2)
+		} else if (link_info->version == VERSION_2) {
+			CAM_ERR(CAM_CRM, "Trying dev_hdl %x (i=%d, v2)",
+				link_info->u.link_info_v2.dev_hdls[i], i);
 			dev->ops = (struct cam_req_mgr_kmd_ops *)
 					cam_get_device_ops(
 					link_info->u.link_info_v2.dev_hdls[i]);
+		}
 		if (!dev->ops ||
 			!dev->ops->get_dev_info ||
 			!dev->ops->link_setup) {
-			CAM_ERR(CAM_CRM, "FATAL: device ops NULL");
+			CAM_ERR(CAM_CRM, "FATAL: device ops NULL! dev_hdl=%x",
+				(link_info->version == VERSION_1) ?
+				link_info->u.link_info_v1.dev_hdls[i] :
+				link_info->u.link_info_v2.dev_hdls[i]);
 			rc = -ENXIO;
 			goto error;
 		}
