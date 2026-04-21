@@ -4214,7 +4214,7 @@ static struct cam_req_mgr_crm_cb cam_req_mgr_ops = {
 static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 	struct cam_req_mgr_ver_info *link_info)
 {
-	int                                     rc = 0, i = 0, num_devices = 0;
+	int                                     rc = 0, i = 0, j = 0, num_devices = 0, valid_devices = 0;
 	struct cam_req_mgr_core_dev_link_setup  link_data;
 	struct cam_req_mgr_connected_device    *dev;
 	struct cam_req_mgr_req_tbl             *pd_tbl;
@@ -4247,7 +4247,7 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 	else if (link_info->version == VERSION_2)
 		num_devices = link_info->u.link_info_v2.num_devices;
 	for (i = 0; i < num_devices; i++) {
-		dev = &link->l_dev[i];
+		dev = &link->l_dev[j];
 		if (link_info->version == VERSION_1)
 			dev->dev_hdl = link_info->u.link_info_v1.dev_hdls[i];
 		else if (link_info->version == VERSION_2)
@@ -4258,11 +4258,11 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 		!dev->ops->get_dev_info ||
 		!dev->ops->link_setup) {
 			CAM_ERR(CAM_CRM,
-				"device ops NULL! dev_hdl=%x, name=%s",
+				"Skipping device with NULL ops! dev_hdl=%x, name=%s",
 				dev->dev_hdl,
 				(dev->dev_info.name[0]) ? dev->dev_info.name : "unknown");
-			rc = -ENXIO;
-			goto error;
+			/* Skip this device, don't increment j */
+			continue;
 		}
 		dev->parent = (void *)link;
 		dev->dev_info.dev_hdl = dev->dev_hdl;
@@ -4288,14 +4288,14 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 			CAM_PIPELINE_DELAY_MAX ||
 			dev->dev_info.p_delay <
 			CAM_PIPELINE_DELAY_0) {
-			CAM_ERR(CAM_CRM, "get device info failed");
-			goto error;
+			CAM_ERR(CAM_CRM, "get device info failed, skipping");
+			continue;
 		} else if (dev->dev_info.m_delay >=
 			CAM_MODESWITCH_DELAY_MAX ||
 			dev->dev_info.m_delay <
 			CAM_MODESWITCH_DELAY_0) {
-			CAM_ERR(CAM_CRM, "get mode switch info failed");
-			goto error;
+			CAM_ERR(CAM_CRM, "get mode switch info failed, skipping");
+			continue;
 		} else {
 			if (link_info->version == VERSION_1) {
 				CAM_DBG(CAM_CRM, "%x: connected: %s, delay %d",
@@ -4320,6 +4320,14 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 			num_trigger_devices++;
 
 		dev->is_active = true;
+		valid_devices++;
+		j++;
+	}
+
+	if (valid_devices == 0) {
+		CAM_ERR(CAM_CRM, "No valid devices found for link setup");
+		rc = -ENXIO;
+		goto error;
 	}
 
 	if (num_trigger_devices > CAM_REQ_MGR_MAX_TRIGGERS) {
@@ -4339,7 +4347,7 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 		link->dual_trigger = true;
 
 	num_trigger_devices = 0;
-	for (i = 0; i < num_devices; i++) {
+	for (i = 0; i < valid_devices; i++) {
 		dev = &link->l_dev[i];
 
 		link_data.dev_hdl = dev->dev_hdl;
@@ -4400,7 +4408,7 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 			link->min_mswitch_delay = dev->dev_info.m_delay;
 	}
 
-	link->num_devs = num_devices;
+	link->num_devs = valid_devices;
 
 	/* Assign id for pd tables */
 	__cam_req_mgr_tbl_set_id(link->req.l_tbl, &link->req);
