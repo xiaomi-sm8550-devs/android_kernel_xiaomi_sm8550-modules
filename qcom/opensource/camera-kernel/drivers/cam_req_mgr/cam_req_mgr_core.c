@@ -4269,8 +4269,6 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 			(link_info->version == VERSION_1) ?
 			link_info->u.link_info_v1.dev_hdls[i] :
 			link_info->u.link_info_v2.dev_hdls[i]);
-		// Dump hdl_tbl info for debugging
-		cam_dump_tbl_info();
 		rc = -ENXIO;
 		goto error;
 	}
