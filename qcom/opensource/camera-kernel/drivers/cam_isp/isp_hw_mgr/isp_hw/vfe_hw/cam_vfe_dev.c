@@ -49,21 +49,31 @@ static int cam_vfe_component_bind(struct device *dev,
 #endif
 	}
 
-	vfe_hw_intf = kzalloc(sizeof(struct cam_hw_intf), GFP_ATOMIC | __GFP_NOFAIL);
+	vfe_hw_intf = kzalloc(sizeof(struct cam_hw_intf), GFP_KERNEL);
 	if (!vfe_hw_intf) {
-		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw_intf");
+		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw_intf with GFP_KERNEL, trying GFP_ATOMIC");
+		vfe_hw_intf = kzalloc(sizeof(struct cam_hw_intf), GFP_ATOMIC);
+	}
+	if (!vfe_hw_intf) {
+		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw_intf with GFP_ATOMIC");
 		rc = -ENOMEM;
 		goto end;
 	}
 
-	CAM_WARN(CAM_ISP, "cam_vfe_component_bind: allocated vfe_hw_intf=%pK", vfe_hw_intf);
+	CAM_WARN(CAM_ISP, "cam_vfe_component_bind: allocated vfe_hw_intf=%px", vfe_hw_intf);
 
-	vfe_hw = kzalloc(sizeof(struct cam_hw_info), GFP_ATOMIC | __GFP_NOFAIL);
+	vfe_hw = kzalloc(sizeof(struct cam_hw_info), GFP_KERNEL);
 	if (!vfe_hw) {
-		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw with __GFP_NOFAIL");
+		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw with GFP_KERNEL, trying GFP_ATOMIC");
+		vfe_hw = kzalloc(sizeof(struct cam_hw_info), GFP_ATOMIC);
+	}
+	if (!vfe_hw) {
+		CAM_ERR(CAM_ISP, "Failed to allocate vfe_hw with GFP_ATOMIC");
 		rc = -ENOMEM;
 		goto free_vfe_hw_intf;
 	}
+
+	CAM_WARN(CAM_ISP, "cam_vfe_component_bind: allocated vfe_hw=%px", vfe_hw);
 
 	vfe_hw->soc_info.pdev = pdev;
 	vfe_hw->soc_info.dev = &pdev->dev;
@@ -90,9 +100,9 @@ static int cam_vfe_component_bind(struct device *dev,
 	platform_set_drvdata(pdev, vfe_hw_intf);
 
 	vfe_hw->core_info = kzalloc(sizeof(struct cam_vfe_hw_core_info),
-		GFP_KERNEL | __GFP_NOFAIL);
+		GFP_KERNEL);
 	if (!vfe_hw->core_info) {
-		CAM_DBG(CAM_ISP, "Failed to alloc for core with __GFP_NOFAIL");
+		CAM_ERR(CAM_ISP, "Failed to alloc for core with GFP_KERNEL");
 		rc = -ENOMEM;
 		goto free_vfe_hw;
 	}
@@ -269,7 +279,7 @@ int cam_vfe_hw_init(struct cam_isp_hw_intf_data **vfe_hw_intf,
 
 	CAM_WARN(CAM_ISP, "cam_vfe_hw_init called: hw_idx=%d, CAM_VFE_HW_NUM_MAX=%d, &list=%pK",
 		hw_idx, CAM_VFE_HW_NUM_MAX, cam_vfe_hw_list);
-	CAM_WARN(CAM_ISP, "cam_vfe_hw_init: list[%d].hw_intf=%pK", hw_idx, cam_vfe_hw_list[hw_idx].hw_intf);
+	CAM_WARN(CAM_ISP, "cam_vfe_hw_init: list[%d].hw_intf=%px", hw_idx, cam_vfe_hw_list[hw_idx].hw_intf);
 
 	if (hw_idx < CAM_VFE_HW_NUM_MAX) {
 		if (cam_vfe_hw_list[hw_idx].hw_intf) {
