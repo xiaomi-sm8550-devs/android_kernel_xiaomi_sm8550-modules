@@ -4265,12 +4265,13 @@ static int __cam_req_mgr_setup_link_info(struct cam_req_mgr_core_link *link,
 		if (!dev->ops ||
 		!dev->ops->get_dev_info ||
 		!dev->ops->link_setup) {
-		CAM_ERR(CAM_CRM, "Skipping device with NULL ops! dev_hdl=%x",
-			(link_info->version == VERSION_1) ?
-			link_info->u.link_info_v1.dev_hdls[i] :
-			link_info->u.link_info_v2.dev_hdls[i]);
-		continue;
-	}
+			CAM_ERR(CAM_CRM, "device ops NULL! dev_hdl=%x",
+				(link_info->version == VERSION_1) ?
+				link_info->u.link_info_v1.dev_hdls[i] :
+				link_info->u.link_info_v2.dev_hdls[i]);
+			rc = -ENXIO;
+			goto error;
+		}
 		if (link_info->version == VERSION_1)
 			dev->dev_hdl = link_info->u.link_info_v1.dev_hdls[i];
 		else if (link_info->version == VERSION_2)
