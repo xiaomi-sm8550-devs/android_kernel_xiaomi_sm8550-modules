@@ -1,7 +1,9 @@
 KERNEL_SRC ?= /lib/modules/$(shell uname -r)/build
 
-KBUILD_OPTIONS+= NFC_ROOT=$(KERNEL_SRC)/$(M)
 M ?= $(shell pwd)
+
+KBUILD_OPTIONS += NFC_ROOT=$(KERNEL_SRC)/$(M)
+KBUILD_OPTIONS += KBUILD_EXTRA_SYMBOLS=$(OUT_DIR)/../sm8550-modules/qcom/opensource/securemsm-kernel/Module.symvers
 
 all:
 	$(MAKE) -C $(KERNEL_SRC) M=$(M) modules $(KBUILD_OPTIONS)
