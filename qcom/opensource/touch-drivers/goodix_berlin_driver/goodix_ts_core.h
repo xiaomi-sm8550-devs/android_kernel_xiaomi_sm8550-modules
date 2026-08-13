@@ -96,6 +96,17 @@ enum GOODIX_ERR_CODE {
 	GOODIX_EOTHER    = (1<<7)
 };
 
+enum goodix_expert_param {
+	GOODIX_EXPERT_TOLERANCE,
+	GOODIX_EXPERT_UP_THRESHOLD,
+	GOODIX_EXPERT_AIM_SENSITIVITY,
+	GOODIX_EXPERT_TAP_STABILITY,
+	GOODIX_EXPERT_PARAM_NUM,
+};
+
+#define GOODIX_EXPERT_LEVEL_NUM 3
+#define GOODIX_EXPERT_LEVEL_OFF 0
+
 enum IC_TYPE_ID {
 	IC_TYPE_NONE,
 	IC_TYPE_NORMANDY,
@@ -323,6 +334,7 @@ struct goodix_ts_board_data {
 	bool pen_enable;
 	char fw_name[GOODIX_MAX_STR_LABLE_LEN];
 	char cfg_bin_name[GOODIX_MAX_STR_LABLE_LEN];
+	u32 touch_expert[GOODIX_EXPERT_LEVEL_NUM * GOODIX_EXPERT_PARAM_NUM];
 
 	bool support_thp_fw;
 };
@@ -477,7 +489,9 @@ struct goodix_ts_hw_ops {
 			struct ts_rawdata_info *info);
 	int (*set_coor_mode)(struct goodix_ts_core *cd);
 	int (*switch_report_rate)(struct goodix_ts_core *cd, bool high);
-	int (*switch_edge_filter)(struct goodix_ts_core *cd, bool high);
+	int (*set_game_mode)(struct goodix_ts_core *cd, bool enabled);
+	int (*set_touch_filter)(struct goodix_ts_core *cd,
+				enum touch_filter_type filter, int value);
 };
 
 /*
@@ -504,11 +518,6 @@ enum goodix_core_init_stage {
 struct goodix_ic_config {
 	int len;
 	u8 data[GOODIX_CFG_MAX_SIZE];
-};
-
-enum edge_filter_mode_t {
-	normal = 0,
-	game = 1,
 };
 
 struct goodix_ts_core {
@@ -579,7 +588,8 @@ struct goodix_ts_core {
 
 	bool nonui_enabled;
 	bool high_report_rate;
-	enum edge_filter_mode_t edge_filter;
+	bool game_mode;
+	u8 touch_filters[TOUCH_FILTER_NUM];
 #if defined(CONFIG_TARGET_PRODUCT_VERMEER)
 	/* Runtime RAM backup is valid only until the next reset/power cycle. */
 	struct mutex report_rate_lock;
@@ -588,6 +598,8 @@ struct goodix_ts_core {
 	bool rate_hw_ready;
 #endif
 };
+
+void brl_init_touch_filters(struct goodix_ts_core *cd);
 
 /* external module structures */
 enum goodix_ext_priority {
