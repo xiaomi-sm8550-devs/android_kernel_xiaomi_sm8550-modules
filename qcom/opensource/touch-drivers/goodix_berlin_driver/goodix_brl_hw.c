@@ -216,6 +216,12 @@ static int brl_power_on(struct goodix_ts_core *cd, bool on)
 	int avdd_gpio = cd->board_data.avdd_gpio;
 	int reset_gpio = cd->board_data.reset_gpio;
 
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+	mutex_lock(&cd->report_rate_lock);
+	cd->rate_hw_ready = false;
+	cd->rate_cfg_saved = false;
+#endif
+
 	if (on) {
 		if (iovdd_gpio > 0) {
 			gpio_direction_output(iovdd_gpio, 1);
@@ -241,12 +247,18 @@ static int brl_power_on(struct goodix_ts_core *cd, bool on)
 				ret = regulator_set_load(cd->avdd, REG_RESUME_CURRENT);
 				if (ret) {
 					ts_err("vdd regulator set_load failed ret=%d", ret);
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+					mutex_unlock(&cd->report_rate_lock);
+#endif
 					return ret;
 				}
 				ret = regulator_set_voltage(cd->avdd, REG_RESUME_MIN_VOLTAGE,
 							REG_RESUME_MAX_VOLTAGE);
 				if (ret) {
 					ts_err("vdd regulator set_vtg failed ret=%d", ret);
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+					mutex_unlock(&cd->report_rate_lock);
+#endif
 					return ret;
 				}
 			}
@@ -269,6 +281,10 @@ static int brl_power_on(struct goodix_ts_core *cd, bool on)
 		if (ret < 0)
 			goto power_off;
 
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+		cd->rate_hw_ready = true;
+		mutex_unlock(&cd->report_rate_lock);
+#endif
 		return 0;
 	}
 
@@ -285,6 +301,10 @@ power_off:
 		gpio_direction_output(avdd_gpio, 0);
 	else if (cd->avdd)
 		regulator_disable(cd->avdd);
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+	cd->rate_hw_ready = !ret && on;
+	mutex_unlock(&cd->report_rate_lock);
+#endif
 	return ret;
 }
 
@@ -317,7 +337,11 @@ int brl_set_coor_mode(struct goodix_ts_core *cd) {
 	ts_debug("brld_set_coor_mode, init_stage: %d", cd->init_stage);
 
 	if (cd->init_stage < CORE_INIT_STAGE2)
-		goto exit;
+		return ret;
+
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+	mutex_lock(&cd->report_rate_lock);
+#endif
 
 	// Disable rawdata mode
 	cmd.cmd = GOODIX_BRLD_CMD_RAWDATA;
@@ -342,9 +366,132 @@ int brl_set_coor_mode(struct goodix_ts_core *cd) {
 	ts_debug("successfully enabled coor mode");
 
 exit:
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+	mutex_unlock(&cd->report_rate_lock);
+#endif
 	return ret;
 }
 
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+#define GOODIX_VERMEER_RATE_CFG_ADDR 0x15A40
+#define GOODIX_VERMEER_RATE_CAPABLE  BIT(1)
+#define GOODIX_VERMEER_RATE_HZ       500
+
+static bool brl_vermeer_rate_fw_supported(struct goodix_ts_core *cd)
+{
+	static const u8 patch_vid[] = { 0x05, 0x80, 0x02, 0x89 };
+
+	return cd->bus->ic_type == IC_TYPE_BERLIN_D &&
+		!memcmp(cd->fw_version.patch_pid, "9916R", 5) &&
+		!memcmp(cd->fw_version.patch_vid, patch_vid, sizeof(patch_vid));
+}
+
+/* Caller holds report_rate_lock. Readback verifies RAM, not report cadence. */
+static int brl_vermeer_write_rate_cfg(struct goodix_ts_core *cd, u8 *cfg)
+{
+	u8 verify[sizeof(cd->rate_cfg_backup)];
+	int ret;
+
+	ret = cd->hw_ops->write(cd, GOODIX_VERMEER_RATE_CFG_ADDR,
+			      cfg, sizeof(verify));
+	if (ret)
+		return ret;
+	ret = cd->hw_ops->read(cd, GOODIX_VERMEER_RATE_CFG_ADDR,
+			     verify, sizeof(verify));
+	if (ret)
+		return ret;
+	return memcmp(cfg, verify, sizeof(verify)) ? -EIO : 0;
+}
+
+static int brl_vermeer_restore_rate_cfg(struct goodix_ts_core *cd)
+{
+	int ret;
+
+	if (!cd->rate_cfg_saved)
+		return 0;
+	ret = brl_vermeer_write_rate_cfg(cd, cd->rate_cfg_backup);
+	if (!ret)
+		cd->rate_cfg_saved = false;
+	return ret;
+}
+
+static int brl_vermeer_rate_cmd(struct goodix_ts_core *cd, bool high)
+{
+	struct goodix_ts_cmd cmd = { 0 };
+
+	cmd.cmd = 0xC1;
+	cmd.len = 6;
+	cmd.data[0] = high;
+	return cd->hw_ops->send_cmd(cd, &cmd);
+}
+
+static int brl_switch_report_rate(struct goodix_ts_core *cd, bool high)
+{
+	u8 cfg[sizeof(cd->rate_cfg_backup)];
+	int ret, restore_ret;
+
+	mutex_lock(&cd->report_rate_lock);
+	if (!brl_vermeer_rate_fw_supported(cd)) {
+		ret = -EOPNOTSUPP;
+		goto out;
+	}
+	/* Defer requests during suspend; resume reapplies the selected mode. */
+	if (atomic_read(&cd->suspended) || !cd->rate_hw_ready) {
+		cd->high_report_rate = high;
+		ret = 0;
+		goto out;
+	}
+	if (!high) {
+		/* C1 must run before restoring the RAM that gates this command. */
+		ret = brl_vermeer_rate_cmd(cd, false);
+		if (!ret)
+			ret = brl_vermeer_restore_rate_cfg(cd);
+		goto done;
+	}
+
+	ret = cd->hw_ops->read(cd, GOODIX_VERMEER_RATE_CFG_ADDR,
+			     cfg, sizeof(cfg));
+	if (ret)
+		goto out;
+	if (!cd->rate_cfg_saved) {
+		memcpy(cd->rate_cfg_backup, cfg, sizeof(cfg));
+		cd->rate_cfg_saved = true;
+	}
+	/* Firmware-specific runtime data; no persistent firmware writes. */
+	cfg[0] |= GOODIX_VERMEER_RATE_CAPABLE;
+	cfg[3] = GOODIX_VERMEER_RATE_HZ & 0xff;
+	cfg[4] = GOODIX_VERMEER_RATE_HZ >> 8;
+	cfg[5] = GOODIX_VERMEER_RATE_HZ & 0xff;
+	cfg[6] = GOODIX_VERMEER_RATE_HZ >> 8;
+	ret = brl_vermeer_write_rate_cfg(cd, cfg);
+	if (ret)
+		goto restore;
+	ret = brl_vermeer_rate_cmd(cd, true);
+	if (!ret)
+		goto done;
+
+	/* A failed ACK can leave the command outcome unknown. */
+	restore_ret = brl_vermeer_rate_cmd(cd, false);
+	if (restore_ret) {
+		ts_err("failed to return C1 to normal mode: %d", restore_ret);
+		goto out;
+	}
+restore:
+	restore_ret = brl_vermeer_restore_rate_cfg(cd);
+	if (restore_ret)
+		ts_err("failed to restore report-rate RAM: %d", restore_ret);
+done:
+	if (!ret) {
+		cd->high_report_rate = high;
+		ts_info("Vermeer report-rate request: %s", high ? "500Hz" : "normal");
+	}
+out:
+	if (ret)
+		ts_err("Vermeer report-rate request failed: %d", ret);
+	mutex_unlock(&cd->report_rate_lock);
+	return ret;
+}
+#else
 #define GOODIX_HIGH_RATE_CMD 0xC0
 static int brl_switch_report_rate(struct goodix_ts_core *cd, bool high)
 {
@@ -365,6 +512,7 @@ static int brl_switch_report_rate(struct goodix_ts_core *cd, bool high)
 exit:
 	return ret;
 }
+#endif
 
 int brl_resume(struct goodix_ts_core *cd)
 {
@@ -407,6 +555,14 @@ int brl_gesture(struct goodix_ts_core *cd, int gesture_type)
 
 static int brl_reset(struct goodix_ts_core *cd, int delay)
 {
+	int ret;
+
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+	mutex_lock(&cd->report_rate_lock);
+	cd->rate_hw_ready = false;
+	cd->rate_cfg_saved = false;
+#endif
+
 	ts_info("chip_reset");
 
 	gpio_direction_output(cd->board_data.reset_gpio, 0);
@@ -417,7 +573,12 @@ static int brl_reset(struct goodix_ts_core *cd, int delay)
 	else
 		msleep(delay);
 
-	return brl_select_spi_mode(cd);
+	ret = brl_select_spi_mode(cd);
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+	cd->rate_hw_ready = !ret;
+	mutex_unlock(&cd->report_rate_lock);
+#endif
+	return ret;
 }
 
 static int brl_irq_enbale(struct goodix_ts_core *cd, bool enable)

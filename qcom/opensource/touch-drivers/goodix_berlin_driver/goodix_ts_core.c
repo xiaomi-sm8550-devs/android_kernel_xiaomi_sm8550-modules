@@ -1679,6 +1679,15 @@ static void goodix_ts_esd_work(struct work_struct *work)
 		goodix_ts_power_off(cd);
 		usleep_range(5000, 5100);
 		goodix_ts_power_on(cd);
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+		if (cd->board_data.support_thp_fw) {
+			ret = hw_ops->set_coor_mode(cd);
+			if (ret)
+				ts_err("failed to restore coordinate mode: %d", ret);
+			else if (cd->high_report_rate)
+				hw_ops->switch_report_rate(cd, true);
+		}
+#endif
 	}
 
 exit:
@@ -2741,6 +2750,9 @@ static int goodix_ts_probe(struct platform_device *pdev)
 	}
 
 	core_data->bus = bus_interface;
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+	mutex_init(&core_data->report_rate_lock);
+#endif
 
 	if (IS_ENABLED(CONFIG_OF) && bus_interface->dev->of_node) {
 		/* parse devicetree property */

@@ -573,6 +573,13 @@ struct goodix_ts_core {
 
 	bool nonui_enabled;
 	bool high_report_rate;
+#if defined(CONFIG_TARGET_PRODUCT_VERMEER)
+	/* Runtime RAM backup is valid only until the next reset/power cycle. */
+	struct mutex report_rate_lock;
+	u8 rate_cfg_backup[8];
+	bool rate_cfg_saved;
+	bool rate_hw_ready;
+#endif
 };
 
 /* external module structures */
