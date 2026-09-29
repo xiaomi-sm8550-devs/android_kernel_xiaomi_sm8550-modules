@@ -255,6 +255,7 @@ struct i2c_data_settings {
 	struct i2c_settings_array *bubble_update;
 	struct i2c_settings_array reg_bank_unlock_settings;
 	struct i2c_settings_array reg_bank_lock_settings;
+	struct i2c_settings_array parklens_settings; //xiaomi add
 };
 
 struct cam_sensor_power_ctrl_t {
